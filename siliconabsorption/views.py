@@ -13,8 +13,8 @@ def inputparams(request):
         form = inputParameters(request.POST)
         if form.is_valid():
             arc_thickness = form.cleaned_data['arc_thickness']
-            texture = form.data['texture']
-            alrear = form.data['alrear']
+            texture = form.cleaned_data['texture']
+            alrear = form.cleaned_data['alrear']
             graphobj.setvalues(arc_thickness, texture,alrear)
             return render(request, 'index.html', {'form':form,'graph':graphobj.getgraph()})
 
