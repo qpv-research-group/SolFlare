@@ -6,19 +6,20 @@
 </head>
 <body>
 
-<h1> Ned's amazing multiplier app ...</h1>
-<p> NB the thermometer app has been retired :-)  This is closer to what we need for calculating silicon absorption</p>
+<h1> Ned's amazing sine wave calculator app ...</h1>
 
-<p>Next task - render graphs</p>
+<p>Here is a form.  Enter data, press submit to calculate and observe the plot</p>
 
-<p>Here is a form.  Enter data, press submit and see what happens...</p>
+<p>Do not attempt to download data ahead of calculating!!</p>
 
 <form method="POST">
     {% csrf_token %}
     {{ form }}
-    <button type="submit">Submit</button>
+    <button type="submit" name="calculate">Calculate</button>
+    <button type="submit" name="download">Download</button>
 </form>
 
-The ARC thickness multipled by the texture height = {{ value }}
+ <img src="data:image/png;base64,{{ graph }}" alt="" height="250" ,width="250">
+
 </body>
 </html>
