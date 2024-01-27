@@ -53,15 +53,56 @@ class siliconCalculator:
         options.wavelength = wavelengths
         options.coherent = False
 
-        if self.ARC_width == 0 and self.texture == False:
-            # Planar Si, with no anti-reflection coating
+# Setup different structures depending on the form input.
+
+        if self.texture == False: # Is this a planar or textured calculation?
+            if self.ARC_width == 0 :  # Planar Si, with no anti-reflection coating
             structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Air)
             options.coherency_list = ['i']
-        else:
-            # Planar Si, with an Si3N4 anti-reflection coating of thickness ARC_width
+            else :  # Planar Si, with an Si3N4 anti-reflection coating of thickness ARC_width
             structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
                           incidence=Air, transmission=Air)
             options.coherency_list = ['c', 'i']
+
+        else :  # In the case of a textured surface setup some additional variables
+            # Texture parameters
+            front_texture = regular_pyramids(elevation_angle=55, upright=True)
+            rear_texture = regular_pyramids(elevation_angle=55, upright=False)
+            # Simulation options
+            options.nx = 20
+            options.ny = 20
+            options.n_rays = n_rays
+            options.bulk_profile = True
+            options.depth_spacing_bulk = 1e-7  # every 100 nm
+            options.project_name = "Si_optics"
+
+            if self.ARC_width==0: # In the case of no ARC.
+                structure = rt_structure(textures=[front_texture, rear_texture],
+                                         materials=[Si],
+                                         widths=[Si_width],
+                                         incidence=Air,
+                                         transmission=Air,
+                                         options=options)
+            else:   # In the case of an ARC
+                front_texture_ARC = regular_pyramids(elevation_angle=55, upright=True,
+                                             interface_layers=[Layer(self.ARC_width, SiN)])
+                if self.alrear == False: # In the case of no Al rear reflector
+                    structure = rt_structure(textures=[front_texture_ARC, rear_texture],
+                                             materials=[Si],
+                                             widths=[Si_width],
+                                             incidence=Air,
+                                             transmission=Air,
+                                             use_TMM=True,
+                                             options=options)
+                else:
+                    structure = rt_structure(textures=[front_texture_ARC, rear_texture],
+                                    materials=[Si],
+                                    widths=[Si_width],
+                                    incidence=Air,
+                                    transmission=Al,
+                                    use_TMM=True,
+                                    options=options)
+
 
 # Perform the calculation
         calculation_result=structure.calculate(options)
