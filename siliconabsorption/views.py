@@ -2,10 +2,10 @@ import csv
 from django.http import HttpResponse
 from django.shortcuts import render
 from .forms import inputParameters
-from .models import plotter
+from .models import siliconCalculator
 
 
-graphobj=plotter()
+graphobj=siliconCalculator()
 def inputparams(request):
     global graphobj
 
@@ -13,8 +13,9 @@ def inputparams(request):
         form = inputParameters(request.POST)
         if form.is_valid():
             arc_thickness = form.cleaned_data['arc_thickness']
-            texture_height = form.cleaned_data['texture_height']
-            graphobj.setvalues(arc_thickness, texture_height)
+            texture = form.cleaned_data['texture']
+            alrear = form.cleaned_data['alrear']
+            graphobj.setvalues(arc_thickness, texture,alrear)
             return render(request, 'index.html', {'form':form,'graph':graphobj.getgraph()})
 
     if 'download' in request.POST:

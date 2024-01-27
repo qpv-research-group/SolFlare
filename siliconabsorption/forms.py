@@ -1,5 +1,7 @@
 from django import forms
 
 class inputParameters(forms.Form):
-    arc_thickness = forms.FloatField(label='Frequency (au)', initial=10)
-    texture_height = forms.FloatField(label='Amplitude (um)', initial=10)
+    arc_thickness = forms.FloatField(label='ARC thicness (au)', initial=80)
+    texture = forms.BooleanField(label='Texture?', initial=False)
+    alrear = forms.BooleanField(label='Al rear?', initial=False)
+
