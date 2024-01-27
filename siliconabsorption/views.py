@@ -15,7 +15,7 @@ def inputparams(request):
             arc_thickness = form.cleaned_data['arc_thickness']
             texture = form.cleaned_data['texture']
             alrear = form.cleaned_data['alrear']
-            graphobj.setvalues(arc_thickness, texture,alrear)
+            graphobj.setvalues(arc_thickness*1e-9, texture,alrear)
             return render(request, 'index.html', {'form':form,'graph':graphobj.getgraph()})
 
     if 'download' in request.POST:
