@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Silicon Absorption Calculator</title>
+</head>
+<body>
+
+<h1> Ned's amazing multiplier app ...</h1>
+<p> NB the thermometer app has been retired :-)  This is closer to what we need for calculating silicon absorption</p>
+
+<p>Next task - render graphs</p>
+
+<p>Here is a form.  Enter data, press submit and see what happens...</p>
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit">Submit</button>
+</form>
+
+The ARC thickness multipled by the texture height = {{ value }}
+</body>
+</html>
