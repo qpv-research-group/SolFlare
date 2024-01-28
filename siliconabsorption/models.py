@@ -107,17 +107,21 @@ class siliconCalculator:
 
 # Perform the calculation
         calculation_result=structure.calculate(options)
+        if self.texture == False:
+            self.ypoints = calculation_result['A']
+        else:
+            self.ypoints = calculation_result[‘A_per_layer’][:,0]
 
         #Store the data so that it persists for download...
         # Likely needs updating if what is downloaded is different to what is plotted...
         self.xpoints = wavelengths * 1e9
-        self.ypoints = calculation_result['A']
+
 
         # Plot the graph
 
         plt.clf() # Clear the figure so that graphs don't stack up.
 
-        plt.plot(wavelengths * 1e9, calculation_result['A'], label=self.ARC_width)
+        plt.plot(self.xpoints, self.ypoints, label=self.ARC_width)
         plt.xlabel('Wavelength (nm)')
         plt.ylabel('Absorption in Si')
         plt.legend()
