@@ -144,6 +144,10 @@ class siliconCalculator:
         for indx in range(self.xpoints.shape[0]):
             writer.writerow([self.xpoints[indx], self.ypoints[indx]])
         return writer
+
+
+
+
 # Example of a class that can be used to generate a graph and download link
 class plotter:
     def __init__(self):
