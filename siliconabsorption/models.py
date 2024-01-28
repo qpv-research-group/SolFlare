@@ -107,13 +107,14 @@ class siliconCalculator:
 
 # Perform the calculation
         calculation_result=structure.calculate(options)
+
+        #The ypoints depend upon whether the structure is planar or textured.
         if self.texture == False:
             self.ypoints = calculation_result['A']
         else:
             self.ypoints = calculation_result[‘A_per_layer’][:,0]
 
-        #Store the data so that it persists for download...
-        # Likely needs updating if what is downloaded is different to what is plotted...
+        # define xpoints as wavelength.
         self.xpoints = wavelengths * 1e9
 
 
