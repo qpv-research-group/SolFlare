@@ -57,12 +57,12 @@ class siliconCalculator:
 
         if self.texture == False: # Is this a planar or textured calculation?
             if self.ARC_width == 0 :  # Planar Si, with no anti-reflection coating
-            structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Air)
-            options.coherency_list = ['i']
+                structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Air)
+                options.coherency_list = ['i']
             else :  # Planar Si, with an Si3N4 anti-reflection coating of thickness ARC_width
-            structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
+                structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
                           incidence=Air, transmission=Air)
-            options.coherency_list = ['c', 'i']
+                options.coherency_list = ['c', 'i']
 
         else :  # In the case of a textured surface setup some additional variables
             # Texture parameters
