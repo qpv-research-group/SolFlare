@@ -95,7 +95,8 @@ class siliconCalculator:
                                              incidence=Air,
                                              transmission=Air,
                                              use_TMM=True,
-                                             options=options)
+                                             options=options,
+                                             save_location='current')
                 else:
                     structure = rt_structure(textures=[front_texture_ARC, rear_texture],
                                     materials=[Si],
@@ -103,7 +104,8 @@ class siliconCalculator:
                                     incidence=Air,
                                     transmission=Al,
                                     use_TMM=True,
-                                    options=options)
+                                    options=options,
+                                    save_location='current')
 
 
 # Perform the calculation
