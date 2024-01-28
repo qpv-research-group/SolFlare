@@ -57,12 +57,24 @@ class siliconCalculator:
 
         if self.texture == False: # Is this a planar or textured calculation?
             if self.ARC_width == 0 :  # Planar Si, with no anti-reflection coating
-                structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Air)
-                options.coherency_list = ['i']
+                if self.alrear == False :
+                    structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Air)
+                    options.coherency_list = ['i']
+                else:
+                    structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Al)
+                    options.coherency_list = ['i']
             else :  # Planar Si, with an Si3N4 anti-reflection coating of thickness ARC_width
-                structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
+                if self.alrear == False :    #
+                    structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
                           incidence=Air, transmission=Air)
-                options.coherency_list = ['c', 'i']
+                    options.coherency_list = ['c', 'i']
+                else:
+                    structure = tmm_structure(
+                        [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
+                        incidence=Air, transmission=Al)
+                    options.coherency_list = ['c', 'i']
+
+
 
         else :  # In the case of a textured surface setup some additional variables
             # Texture parameters
@@ -141,46 +153,12 @@ class siliconCalculator:
         uri = urllib.parse.quote(string)
         return uri
     def getcsv(self,writer):
+        # Save the generation file
+
         # Iterate through xpoints and ypoints and add to csv file
-        writer.writerow(["xpoints", "ypoints"])
         for indx in range(self.xpoints.shape[0]):
             writer.writerow([self.xpoints[indx], self.ypoints[indx]])
         return writer
 
 
-
-
-# Example of a class that can be used to generate a graph and download link
-class plotter:
-    def __init__(self):
-        self.arcthickness = 0
-        self.pyramidheight = 0
-        self.xpoints = np.empty(0)
-        self.ypoints = np.empty(0)
-
-    def setvalues(self,arcthickness,pyramidheight):
-        self.arcthickness = arcthickness
-        self.pyramidheight = pyramidheight
-
-    def getgraph(self):
-        self.xpoints = np.arange(0, 10, 0.1)
-        self.ypoints = self.pyramidheight*np.sin(self.xpoints*self.arcthickness)
-        plt.clf()
-        plt.plot(self.xpoints, self.ypoints)
-        fig = plt.gcf()
-        # convert graph into dtring buffer and then we convert 64 bit code into image
-        # adapted from https://sukhbinder.wordpress.com/2022/04/13/rendering-matplotlib-graphs-in-django/
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png')
-        buf.seek(0)
-        string = base64.b64encode(buf.read())
-        uri = urllib.parse.quote(string)
-        return uri
-
-    def getcsv(self,writer):
-        # Iterate through xpoints and ypoints and add to csv file
-        writer.writerow(["xpoints", "ypoints"])
-        for indx in range(self.xpoints.shape[0]):
-            writer.writerow([self.xpoints[indx], self.ypoints[indx]])
-        return writer
 
