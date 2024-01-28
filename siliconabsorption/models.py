@@ -69,6 +69,7 @@ class siliconCalculator:
             front_texture = regular_pyramids(elevation_angle=55, upright=True)
             rear_texture = regular_pyramids(elevation_angle=55, upright=False)
             # Simulation options
+            options.coherency_list = ['c', 'i'] # Trying to solve an error translating Phoebe's code to this model.  In P's code this option gets defined earlier.
             options.nx = 20
             options.ny = 20
             options.n_rays = n_rays
