@@ -23,7 +23,7 @@ def inputparams(request):
         # Create the HttpResponse object with the appropriate CSV header.
         response = HttpResponse(
             content_type="text/csv",
-            headers={"Content-Disposition": 'attachment; filename="somefilename.csv"'},
+            headers={"Content-Disposition": 'attachment; filename="siliconR.txt"'},
         )
         writer = csv.writer(response,dialect='excel-tab')
         graphobj.getcsv(writer)
