@@ -86,14 +86,14 @@ class siliconCalculator:
                                          options=options)
             else:   # In the case of an ARC
                 front_texture_ARC = regular_pyramids(elevation_angle=55, upright=True,
-                                             interface_layers=[Layer(self.ARC_width, material=SiN)])
+                                             interface_layers=[Layer(self.ARC_width, SiN)])
                 if self.alrear == False: # In the case of no Al rear reflector
                     structure = rt_structure(textures=[front_texture_ARC, rear_texture],
                                              materials=[Si],
                                              widths=[Si_width],
                                              incidence=Air,
                                              transmission=Air,
-                                             use_TMM=True,
+                                         #    use_TMM=True,
                                              options=options)
                 else:
                     structure = rt_structure(textures=[front_texture_ARC, rear_texture],
