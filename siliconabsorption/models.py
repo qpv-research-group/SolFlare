@@ -113,7 +113,7 @@ class siliconCalculator:
         if self.texture == False:
             self.ypoints = calculation_result['A']
         else:
-            self.ypoints = calculation_result['A_per_layer']
+            self.ypoints = calculation_result['A_per_layer'][:,0]
 
         # define xpoints as wavelength.
         self.xpoints = wavelengths * 1e9
