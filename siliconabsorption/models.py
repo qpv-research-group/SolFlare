@@ -86,7 +86,7 @@ class siliconCalculator:
                                          options=options)
             else:   # In the case of an ARC
                 front_texture_ARC = regular_pyramids(elevation_angle=55, upright=True,
-                                             interface_layers=[Layer(self.ARC_width, material=SiN)])
+                                             interface_layers=[Layer(self.ARC_width, SiN)])
                 options.coherency_list = ['c', 'i']
                 if self.alrear == False: # In the case of no Al rear reflector
                     structure = rt_structure(textures=[front_texture_ARC, rear_texture],
@@ -138,7 +138,12 @@ class siliconCalculator:
         string = base64.b64encode(buf.read())
         uri = urllib.parse.quote(string)
         return uri
-
+    def getcsv(self,writer):
+        # Iterate through xpoints and ypoints and add to csv file
+        writer.writerow(["xpoints", "ypoints"])
+        for indx in range(self.xpoints.shape[0]):
+            writer.writerow([self.xpoints[indx], self.ypoints[indx]])
+        return writer
 # Example of a class that can be used to generate a graph and download link
 class plotter:
     def __init__(self):

@@ -25,7 +25,7 @@ def inputparams(request):
             content_type="text/csv",
             headers={"Content-Disposition": 'attachment; filename="somefilename.csv"'},
         )
-        writer = csv.writer(response)
+        writer = csv.writer(response,dialect='excel-tab')
         graphobj.getcsv(writer)
         return response
 
