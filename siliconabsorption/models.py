@@ -26,7 +26,7 @@ class siliconCalculator:
         self.texture = False
         self.alrear = False
         self.xpointsR = np.empty(0)
-        self.ypointsR = np.empty(0)
+        self.ypointsA = np.empty(0)
         self.xpointsG = np.empty(0)
         self.ypointsG = np.empty(0)
 
@@ -39,7 +39,7 @@ class siliconCalculator:
 
     def getgraph(self):
         Si_width = 190e-6
-        n_rays = 2000
+        n_rays = 1000
 
         wavelengths = si(np.linspace(280, 1180, 50), 'nm')
 
@@ -78,14 +78,11 @@ class siliconCalculator:
                         incidence=Air, transmission=Al)
                     options.coherency_list = ['c', 'i']
 
-
-
         else :  # In the case of a textured surface setup some additional variables
             # Texture parameters
             front_texture = regular_pyramids(elevation_angle=55, upright=True)
             rear_texture = regular_pyramids(elevation_angle=55, upright=False)
             # Simulation options
-#            options.coherency_list = ['c', 'i'] # Trying to solve an error translating Phoebe's code to this model.  In P's code this option gets defined earlier.
             options.nx = 20
             options.ny = 20
             options.n_rays = n_rays
@@ -127,23 +124,69 @@ class siliconCalculator:
 # Perform the calculation
         calculation_result=structure.calculate(options)
 
-        #The ypoints depend upon whether the structure is planar or textured.
-        if self.texture == False:
-            self.ypointsR = calculation_result['A']
-        else:
-            self.ypointsR = calculation_result['A_per_layer'][:, 0]
-
-        # define xpoints as wavelength.
+        # Store wavelengths in the instance variable xpoints incase it needs to be saved later
         self.xpointsR = wavelengths * 1e9
 
+        # Extract the absorption data depending on the method used:
+        if self.texture == False:
+            self.ypointsA = calculation_result['A']
+        else:
+            self.ypointsA = calculation_result['A_per_layer'][:, 0]
+
+        # Store reflectance data in an instance variable ypointsR incase it needs to be saved later
+        self.ypointsR = calculation_result['R']
+
+        # calculate cumulative generation
+
+        if self.texture == True:
+            absorption_profile = calculation_result['profile'] * 1e6  # array with dimensions (n_wavelengths, n_depths)
+        # units are m^-1
+
+        # integrate over wavelengths with the photon flux:
+            weighted_absorption = absorption_profile * AM15G.spectrum(wavelengths)[1][:, None]
+        # units are m-1 * # of photons m^-2 m^-1, overall m^-4
+
+        # integrate over wavelengths
+            total_generation = np.trapz(weighted_absorption, wavelengths, axis=0)
+        # units are # of photons m^-3, as a function of depth in m
+
+            cumulative_generation = np.cumsum(total_generation) * options.depth_spacing_bulk
+        # units are # of photons m^-3, as a function of depth in m
+
+            depth = np.linspace(0, Si_width, len(cumulative_generation))
+        # I guess PC1D wants this in units of m^-2 cm-1, so divide by 10?
+            self.xpointsG=depth * 1e6
+            self.ypointsG=cumulative_generation / 10
+        else:
+            profile_spacing = 1e-7
+            exclude_points = np.ceil(self.ARC_width / profile_spacing)  # figure out how many points to exclude for the ARC
+            planar_result_ARC = structure.calculate_profile(options)
+            absorption_profile = planar_result_ARC['profile'][:,int(exclude_points):] * 1e6  # array with dimensions (n_wavelengths, n_depths)
+
+            # integrate over wavelengths with the photon flux:
+            weighted_absorption = absorption_profile * AM15G.spectrum(wavelengths)[1][:, None]
+            # units are m-1 * # of photons m^-2 m^-1, overall m^-4
+
+            # integrate over wavelengths
+            total_generation = np.trapz(weighted_absorption, wavelengths, axis=0)
+            # units are # of photons m^-3, as a function of depth in m
+
+            cumulative_generation = np.cumsum(total_generation) * profile_spacing
+            # units are # of photons m^-3, as a function of depth in m
+
+            depth = np.linspace(0, Si_width, len(cumulative_generation))
+            # I guess PC1D wants this in units of m^-2 cm-1, so divide by 10?
+            self.xpointsG=depth * 1e6
+            self.ypointsG=cumulative_generation / 10
 
         # Plot the graph
-
         plt.clf() # Clear the figure so that graphs don't stack up.
 
-        plt.plot(self.xpointsR, self.ypointsR, label=self.ARC_width)
+        plt.plot(self.xpointsR, self.ypointsA, label='A')
+        plt.plot(self.xpointsR,self.ypointsR, label='R')
         plt.xlabel('Wavelength (nm)')
-        plt.ylabel('Absorption in Si')
+        plt.ylabel('Absorption & Reflection')
+        plt.ylim(0, 1.05)
         plt.legend()
         plt.grid()
 
@@ -157,8 +200,7 @@ class siliconCalculator:
         uri = urllib.parse.quote(string)
         return uri
     def downloadR(self, writer):
-        # Save the generation file
-
+        # Save the Reflectance file
         # Iterate through xpoints and ypoints and add to csv file
         for indx in range(self.xpointsR.shape[0]):
             writer.writerow([self.xpointsR[indx], self.ypointsR[indx]])
@@ -166,10 +208,9 @@ class siliconCalculator:
 
     def downloadG(self, writer):
         # Save the generation file
-
-        # Iterate through xpoints and ypoints and add to csv file
-        for indx in range(self.xpointsR.shape[0]):
-            writer.writerow([self.xpointsR[indx], self.ypointsR[indx]])
+        # Iterate through xpoints and ypoints and add to txt file
+        for indx in range(self.xpointsG.shape[0]):
+            writer.writerow([self.xpointsG[indx], self.ypointsG[indx]])
         return writer
 
 
