@@ -22,14 +22,18 @@ class siliconCalculator:
 # Constructor that sets up empty instance varibles
     def __init__(self):
         self.ARC_width = 80e-9
+        self.shading = 2
         self.texture = False
         self.alrear = False
-        self.xpoints = np.empty(0)
-        self.ypoints = np.empty(0)
+        self.xpointsR = np.empty(0)
+        self.ypointsR = np.empty(0)
+        self.xpointsG = np.empty(0)
+        self.ypointsG = np.empty(0)
 
 # A method that sets parameters according to the form input
-    def setvalues(self,arcthickness,texture,alrear):
-        self.ARC_width = arcthickness
+    def setvalues(self,shading,arcthickness,texture,alrear):
+        self.shading = shading/100      # Shading is passed as a fraction from views.py
+        self.ARC_width = arcthickness   # ARC thickness is passed in units of [m] from views.py
         self.texture = texture
         self.alrear = alrear
 
@@ -125,19 +129,19 @@ class siliconCalculator:
 
         #The ypoints depend upon whether the structure is planar or textured.
         if self.texture == False:
-            self.ypoints = calculation_result['A']
+            self.ypointsR = calculation_result['A']
         else:
-            self.ypoints = calculation_result['A_per_layer'][:,0]
+            self.ypointsR = calculation_result['A_per_layer'][:, 0]
 
         # define xpoints as wavelength.
-        self.xpoints = wavelengths * 1e9
+        self.xpointsR = wavelengths * 1e9
 
 
         # Plot the graph
 
         plt.clf() # Clear the figure so that graphs don't stack up.
 
-        plt.plot(self.xpoints, self.ypoints, label=self.ARC_width)
+        plt.plot(self.xpointsR, self.ypointsR, label=self.ARC_width)
         plt.xlabel('Wavelength (nm)')
         plt.ylabel('Absorption in Si')
         plt.legend()
@@ -152,12 +156,20 @@ class siliconCalculator:
         string = base64.b64encode(buf.read())
         uri = urllib.parse.quote(string)
         return uri
-    def getcsv(self,writer):
+    def downloadR(self, writer):
         # Save the generation file
 
         # Iterate through xpoints and ypoints and add to csv file
-        for indx in range(self.xpoints.shape[0]):
-            writer.writerow([self.xpoints[indx], self.ypoints[indx]])
+        for indx in range(self.xpointsR.shape[0]):
+            writer.writerow([self.xpointsR[indx], self.ypointsR[indx]])
+        return writer
+
+    def downloadG(self, writer):
+        # Save the generation file
+
+        # Iterate through xpoints and ypoints and add to csv file
+        for indx in range(self.xpointsR.shape[0]):
+            writer.writerow([self.xpointsR[indx], self.ypointsR[indx]])
         return writer
 
 

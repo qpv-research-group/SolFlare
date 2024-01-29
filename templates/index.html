@@ -8,7 +8,7 @@
 
 <h1> Silicon Absorption Calculator </h1>
 
-Debug active - version 9:01pm 28-Jan-2024
+Debug active - version 11:44pm 29-Jan-2024
 
 <p>The absorption of silicon is calculated using the <a href="http://rayflare.readthedocs.io">RayFlare</a> python framework.  Enter the SiN thickness, front surface texture and aluminium rear reflector </p>
 
@@ -18,7 +18,8 @@ Debug active - version 9:01pm 28-Jan-2024
     {% csrf_token %}
     {{ form }}
     <button type="submit" name="calculate">Calculate</button>
-    <button type="submit" name="download">Download</button>
+    <button type="submit" name="downloadR">Download Reflectance</button>
+    <button type="submit" name="downloadG">Download Generation</button>
 </form>
 
  <img src="data:image/png;base64,{{ graph }}" alt="" height="250" ,width="250">
