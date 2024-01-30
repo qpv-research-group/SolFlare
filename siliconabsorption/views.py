@@ -12,11 +12,12 @@ def inputparams(request):
     if 'calculate' in request.POST: # Actions to perform when [Calculate] is pressed
         form = inputParameters(request.POST)
         if form.is_valid():
+            silicon_thickness = form.cleaned_data['silicon_thickness']
             arc_thickness = form.cleaned_data['arc_thickness']
             texture = form.cleaned_data['texture']
             alrear = form.cleaned_data['alrear']
             shading = form.cleaned_data['shading']
-            graphobj.setvalues(shading/100,arc_thickness*1e-9, texture,alrear)
+            graphobj.setvalues(silicon_thickness*1e-6,shading/100,arc_thickness*1e-9, texture,alrear)
             return render(request, 'index.html', {'form':form,'graph':graphobj.getgraph()})
 
     if 'downloadR' in request.POST: # Actions to perform when [Download Reflectance] is pressed

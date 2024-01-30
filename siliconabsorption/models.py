@@ -21,6 +21,7 @@ from rayflare.options import default_options
 class siliconCalculator:
 # Constructor that sets up empty instance varibles
     def __init__(self):
+        self.Si_width = 180e-6
         self.ARC_width = 80e-9
         self.shading = 2
         self.texture = False
@@ -31,14 +32,14 @@ class siliconCalculator:
         self.ypointsG = np.empty(0)
 
 # A method that sets parameters according to the form input
-    def setvalues(self,shading,arcthickness,texture,alrear):
+    def setvalues(self,Si_width,shading,arcthickness,texture,alrear):
+        self.Si_width = Si_width      # Si thickness is passed in units of [m] from views.py
         self.shading = shading        # Shading is passed as a fraction from views.py
         self.ARC_width = arcthickness   # ARC thickness is passed in units of [m] from views.py
         self.texture = texture
         self.alrear = alrear
 
     def getgraph(self):
-        Si_width = 190e-6
         n_rays = 1000
         profile_spacing = 1e-7
 
@@ -64,19 +65,19 @@ class siliconCalculator:
         if self.texture == False: # Is this a planar or textured calculation?
             if self.ARC_width == 0 :  # Planar Si, with no anti-reflection coating
                 if self.alrear == False :
-                    structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Air)
+                    structure = tmm_structure([Layer(width=self.Si_width, material=Si)], incidence=Air, transmission=Air)
                     options.coherency_list = ['i']
                 else:
-                    structure = tmm_structure([Layer(width=Si_width, material=Si)], incidence=Air, transmission=Al)
+                    structure = tmm_structure([Layer(width=self.Si_width, material=Si)], incidence=Air, transmission=Al)
                     options.coherency_list = ['i']
             else :  # Planar Si, with an Si3N4 anti-reflection coating of thickness ARC_width
                 if self.alrear == False :    #
-                    structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
+                    structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
                           incidence=Air, transmission=Air)
                     options.coherency_list = ['c', 'i']
                 else:
                     structure = tmm_structure(
-                        [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=Si_width, material=Si)],
+                        [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
                         incidence=Air, transmission=Al)
                     options.coherency_list = ['c', 'i']
 
@@ -95,7 +96,7 @@ class siliconCalculator:
             if self.ARC_width==0: # In the case of no ARC.
                 structure = rt_structure(textures=[front_texture, rear_texture],
                                          materials=[Si],
-                                         widths=[Si_width],
+                                         widths=[self.Si_width],
                                          incidence=Air,
                                          transmission=Air,
                                          options=options)
@@ -106,7 +107,7 @@ class siliconCalculator:
                 if self.alrear == False: # In the case of no Al rear reflector
                     structure = rt_structure(textures=[front_texture_ARC, rear_texture],
                                              materials=[Si],
-                                             widths=[Si_width],
+                                             widths=[self.Si_width],
                                              incidence=Air,
                                              transmission=Air,
                                              use_TMM=True,
@@ -115,7 +116,7 @@ class siliconCalculator:
                 else:
                     structure = rt_structure(textures=[front_texture_ARC, rear_texture],
                                     materials=[Si],
-                                    widths=[Si_width],
+                                    widths=[self.Si_width],
                                     incidence=Air,
                                     transmission=Al,
                                     use_TMM=True,
@@ -160,7 +161,7 @@ class siliconCalculator:
         cumulative_generation = np.cumsum(total_generation) * profile_spacing
         # units are # of photons m^-3, as a function of depth in m
 
-        depth = np.linspace(0, Si_width, len(cumulative_generation))
+        depth = np.linspace(0, self.Si_width, len(cumulative_generation))
         # I guess PC1D wants this in units of m^-2 cm-1, so divide by 10?
         self.xpointsG=depth * 1e6
         self.ypointsG=(1-self.shading)*cumulative_generation / 10

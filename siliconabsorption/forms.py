@@ -1,6 +1,7 @@
 from django import forms
 
 class inputParameters(forms.Form):
+    silicon_thickness = forms.FloatField(label='Si thickness (um)', initial=180)
     shading = forms.FloatField(label='Shading (%)', initial=2)
     arc_thickness = forms.FloatField(label='ARC thickness (nm)', initial=80)
     texture = forms.BooleanField(label='Texture?', initial=False,required=False)
