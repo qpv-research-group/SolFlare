@@ -32,7 +32,7 @@ class siliconCalculator:
 
 # A method that sets parameters according to the form input
     def setvalues(self,shading,arcthickness,texture,alrear):
-        self.shading = shading/100      # Shading is passed as a fraction from views.py
+        self.shading = shading        # Shading is passed as a fraction from views.py
         self.ARC_width = arcthickness   # ARC thickness is passed in units of [m] from views.py
         self.texture = texture
         self.alrear = alrear
@@ -40,6 +40,7 @@ class siliconCalculator:
     def getgraph(self):
         Si_width = 190e-6
         n_rays = 1000
+        profile_spacing = 1e-7
 
         wavelengths = si(np.linspace(280, 1180, 50), 'nm')
 
@@ -56,6 +57,7 @@ class siliconCalculator:
         options.pol = 'u'
         options.wavelength = wavelengths
         options.coherent = False
+        options.depth_spacing = profile_spacing
 
 # Setup different structures depending on the form input.
 
@@ -87,7 +89,7 @@ class siliconCalculator:
             options.ny = 20
             options.n_rays = n_rays
             options.bulk_profile = True
-            options.depth_spacing_bulk = 1e-7  # every 100 nm
+            options.depth_spacing_bulk = profile_spacing
             options.project_name = "Si_optics"
 
             if self.ARC_width==0: # In the case of no ARC.
@@ -134,7 +136,7 @@ class siliconCalculator:
             self.ypointsA = calculation_result['A_per_layer'][:, 0]
 
         # Store reflectance data in an instance variable ypointsR incase it needs to be saved later
-        self.ypointsR = calculation_result['R']
+        self.ypointsR = calculation_result['R']*(1-self.shading)+self.shading
 
         # calculate cumulative generation
 
@@ -142,48 +144,34 @@ class siliconCalculator:
             absorption_profile = calculation_result['profile'] * 1e6  # array with dimensions (n_wavelengths, n_depths)
         # units are m^-1
 
-        # integrate over wavelengths with the photon flux:
-            weighted_absorption = absorption_profile * AM15G.spectrum(wavelengths)[1][:, None]
-        # units are m-1 * # of photons m^-2 m^-1, overall m^-4
-
-        # integrate over wavelengths
-            total_generation = np.trapz(weighted_absorption, wavelengths, axis=0)
-        # units are # of photons m^-3, as a function of depth in m
-
-            cumulative_generation = np.cumsum(total_generation) * options.depth_spacing_bulk
-        # units are # of photons m^-3, as a function of depth in m
-
-            depth = np.linspace(0, Si_width, len(cumulative_generation))
-        # I guess PC1D wants this in units of m^-2 cm-1, so divide by 10?
-            self.xpointsG=depth * 1e6
-            self.ypointsG=cumulative_generation / 10
         else:
-            profile_spacing = 1e-7
             exclude_points = np.ceil(self.ARC_width / profile_spacing)  # figure out how many points to exclude for the ARC
             planar_result_ARC = structure.calculate_profile(options)
             absorption_profile = planar_result_ARC['profile'][:,int(exclude_points):] * 1e6  # array with dimensions (n_wavelengths, n_depths)
 
-            # integrate over wavelengths with the photon flux:
-            weighted_absorption = absorption_profile * AM15G.spectrum(wavelengths)[1][:, None]
-            # units are m-1 * # of photons m^-2 m^-1, overall m^-4
+        # integrate over wavelengths with the photon flux:
+        weighted_absorption = absorption_profile * AM15G.spectrum(wavelengths)[1][:, None]
+        # units are m-1 * # of photons m^-2 m^-1, overall m^-4
 
-            # integrate over wavelengths
-            total_generation = np.trapz(weighted_absorption, wavelengths, axis=0)
-            # units are # of photons m^-3, as a function of depth in m
+        # integrate over wavelengths
+        total_generation = np.trapz(weighted_absorption, wavelengths, axis=0)
+        # units are # of photons m^-3, as a function of depth in m
 
-            cumulative_generation = np.cumsum(total_generation) * profile_spacing
-            # units are # of photons m^-3, as a function of depth in m
+        cumulative_generation = np.cumsum(total_generation) * profile_spacing
+        # units are # of photons m^-3, as a function of depth in m
 
-            depth = np.linspace(0, Si_width, len(cumulative_generation))
-            # I guess PC1D wants this in units of m^-2 cm-1, so divide by 10?
-            self.xpointsG=depth * 1e6
-            self.ypointsG=cumulative_generation / 10
+        depth = np.linspace(0, Si_width, len(cumulative_generation))
+        # I guess PC1D wants this in units of m^-2 cm-1, so divide by 10?
+        self.xpointsG=depth * 1e6
+        self.ypointsG=(1-self.shading)*cumulative_generation / 10
 
         # Plot the graph
         plt.clf() # Clear the figure so that graphs don't stack up.
 
-        plt.plot(self.xpointsR, self.ypointsA, label='A')
+        plt.plot(self.xpointsR, self.ypointsA*(1-self.shading), label='A')
         plt.plot(self.xpointsR,self.ypointsR, label='R')
+        plt.text(250,0.9, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
+        plt.text(250,0.8, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsA* AM15G.spectrum(wavelengths)[1][:, None]/np.sum(AM15G.spectrum(wavelengths)[1][:, None]))))
         plt.xlabel('Wavelength (nm)')
         plt.ylabel('Absorption & Reflection')
         plt.ylim(0, 1.05)
