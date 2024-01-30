@@ -171,9 +171,9 @@ class siliconCalculator:
 
         plt.plot(self.xpointsR, self.ypointsA*(1-self.shading), label='A')
         plt.plot(self.xpointsR,self.ypointsR, label='R')
-        plt.text(250,0.9, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
+        plt.text(250,0.95, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
         weighted_photon_flux = AM15G.spectrum(wavelengths)[1] / np.max(AM15G.spectrum(wavelengths)[1])
-        plt.text(250,0.8, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsR*weighted_photon_flux)))
+        plt.text(250,1.005, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsR*weighted_photon_flux)))
         plt.xlabel('Wavelength (nm)')
         plt.ylabel('Absorption & Reflection')
         plt.ylim(0, 1.05)
@@ -184,7 +184,7 @@ class siliconCalculator:
         # convert graph into dtring buffer and then we convert 64 bit code into image
         # adapted from https://sukhbinder.wordpress.com/2022/04/13/rendering-matplotlib-graphs-in-django/
         buf = io.BytesIO()
-        fig.savefig(buf, format='png')
+        fig.savefig(buf, format='png',dpi=300)
         buf.seek(0)
         string = base64.b64encode(buf.read())
         uri = urllib.parse.quote(string)
