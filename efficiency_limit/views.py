@@ -1,11 +1,15 @@
 import numpy as np
+import json
 from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from solcore.light_source import LightSource
 from solcore.solar_cell import SolarCell
 from solcore.solar_cell_solver import solar_cell_solver
 from solcore.structure import Junction
 
 
+@csrf_exempt
 def calculate_efficiency(request):
     # Generate solar spectrum data
     wl = np.linspace(280, 4400, 200) * 1e-9  # Reduced number of points for performance
@@ -20,12 +24,12 @@ def calculate_efficiency(request):
 
     spectrum_data = [{'x': float(e), 'y': float(i)} for e, i in zip(energy_ev, spectrum)]
 
-    context = {
-        'spectrum_data': spectrum_data,
-    }
-
     if request.method == 'POST':
-        eg_value = float(request.POST.get('eg_value', 1.0))
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            data = json.loads(request.body)
+            eg_value = float(data.get('eg_value', 1.0))
+        else:
+            eg_value = float(request.POST.get('eg_value', 1.0))
 
         # Your efficiency calculation code here
         back_reflector = True
@@ -45,17 +49,17 @@ def calculate_efficiency(request):
                                         'mpp': True, 'light_source': light})
 
         # Get efficiency values
-        efficiency = my_solar_cell.iv.Eta * 100
-        voc = my_solar_cell.iv.Voc
-        jsc = my_solar_cell.iv.Isc
-        ff = my_solar_cell.iv.FF * 100
+        efficiency = np.round(my_solar_cell.iv.Eta * 100, 2)
+        voc = np.round(my_solar_cell.iv.Voc, 3)
+        jsc = np.round(my_solar_cell.iv.Isc, 1)
+        ff = np.round(my_solar_cell.iv.FF * 100, 2)
 
-        context.update({
-            'efficiency': efficiency,
-            'voc': voc,
-            'jsc': jsc,
-            'ff': ff,
-            'eg_value': eg_value,
-        })
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'efficiency': efficiency,
+                'voc': voc,
+                'jsc': jsc,
+                'ff': ff,
+            })
 
-    return render(request, 'calculate.html', context)
+    return render(request, 'calculate.html', {'spectrum_data': spectrum_data})
