@@ -29,7 +29,7 @@ python-dateutil==2.8.2
 pytz==2023.3.post1
 PyYAML==6.0.1
 ratelim==0.1.6
-rayflare==1.2.1
+rayflare==2.0.1
 regex==2023.12.25
 requests==2.31.0
 scipy==1.12.0
@@ -42,5 +42,5 @@ sqlparse==0.4.4
 tmm==0.1.8
 tzdata==2023.4
 urllib3==2.1.0
-xarray==2024.1.1
+xarray==2024.07.0
 yabox==1.1.0
