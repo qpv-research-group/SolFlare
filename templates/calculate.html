@@ -1,23 +1,145 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Efficiency Limit Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        #bandgap-line {
+            position: absolute;
+            width: 4px;
+            background-color: rgb(255, 99, 132);
+            top: 0;
+            bottom: 20px;
+            cursor: ew-resize;
+        }
+    </style>
 </head>
 <body>
     <h1>Efficiency Limit Calculator</h1>
-    <form method="post">
+
+    <div id="chart-container">
+        <canvas id="solar-spectrum"></canvas>
+        <div id="bandgap-line"></div>
+    </div>
+
+    <form id="efficiency-form" method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        <input type="hidden" id="eg-value" name="eg_value" value="1.0">
         <button type="submit">Calculate</button>
     </form>
 
-    {% if graphic %}
+    <div id="bandgap-value">Bandgap: 1.00 eV</div>
+
+    {% if efficiency %}
         <h2>Results</h2>
-        <img src="data:image/png;base64,{{ graphic }}" alt="Light Source Spectrum">
+        <p>Bandgap: {{ eg_value|floatformat:2 }} eV</p>
         <p>Efficiency: {{ efficiency|floatformat:2 }}%</p>
         <p>Voc: {{ voc|floatformat:2 }} V</p>
         <p>Jsc: {{ jsc|floatformat:2 }} mA/cm2</p>
         <p>FF: {{ ff|floatformat:2 }}%</p>
     {% endif %}
+
+    <script>
+        const ctx = document.getElementById('solar-spectrum').getContext('2d');
+        const egValueInput = document.getElementById('eg-value');
+        const bandgapValueDisplay = document.getElementById('bandgap-value');
+        const bandgapLine = document.getElementById('bandgap-line');
+        const spectrumData = {{ spectrum_data|safe }};
+
+        let bandgapEnergy = 1.0;
+        const minEnergy = 0.3;
+        const maxEnergy = 4.2;
+
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Solar Spectrum',
+                    data: spectrumData,
+                    borderColor: 'rgba(75, 192, 192, 0.8)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'Energy (eV)'
+                        },
+                        min: minEnergy,
+                        max: maxEnergy
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Spectral Irradiance (W/m²/nm)'
+                        }
+                    }
+                },
+                animation: {
+                    duration: 0
+                },
+                maintainAspectRatio: false
+            }
+        });
+
+        function updateBandgapLine(energy) {
+            const chartArea = chart.chartArea;
+            const xScale = chart.scales.x;
+            const pixelX = xScale.getPixelForValue(energy);
+            bandgapLine.style.left = `${pixelX}px`;
+            bandgapValueDisplay.textContent = `Bandgap: ${energy.toFixed(2)} eV`;
+            egValueInput.value = energy.toFixed(2);
+        }
+
+        function energyFromPixel(pixelX) {
+            const chartArea = chart.chartArea;
+            const xScale = chart.scales.x;
+            return xScale.getValueForPixel(pixelX);
+        }
+
+        let isDragging = false;
+
+        bandgapLine.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        function onMouseMove(e) {
+            if (!isDragging) return;
+            const chartArea = chart.chartArea;
+            const rect = ctx.canvas.getBoundingClientRect();
+            const pixelX = e.clientX - rect.left;
+            if (pixelX >= chartArea.left && pixelX <= chartArea.right) {
+                let energy = energyFromPixel(pixelX);
+                energy = Math.max(minEnergy, Math.min(maxEnergy, energy));
+                bandgapEnergy = energy;
+                updateBandgapLine(energy);
+            }
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+
+        // Initialize bandgap line
+        updateBandgapLine(bandgapEnergy);
+    </script>
 </body>
 </html>
