@@ -86,7 +86,6 @@
     </div>
 
     <script>
-        // (The JavaScript code remains the same as in the previous version)
         const ctx = document.getElementById('solar-spectrum').getContext('2d');
         const bandgapValueDisplay = document.getElementById('bandgap-value');
         const bandgapLine = document.getElementById('bandgap-line');
@@ -106,6 +105,7 @@
                     borderColor: 'rgba(75, 192, 192, 0.8)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     fill: true,
+                    tension: 0.1,
                     tension: 0.1,
                     pointRadius: 0
                 }]
@@ -139,12 +139,14 @@
             }
         });
 
-        function updateBandgapLine(energy) {
+        function updateBandgapLine(energy, calculateEfficiencyFlag = true) {
             const xScale = chart.scales.x;
             const pixelX = xScale.getPixelForValue(energy);
             bandgapLine.style.left = `${pixelX}px`;
             bandgapValueDisplay.textContent = `Bandgap: ${energy.toFixed(2)} eV`;
-            calculateEfficiency(energy);
+            if (calculateEfficiencyFlag) {
+                calculateEfficiency(energy);
+            }
         }
 
         function energyFromPixel(pixelX) {
@@ -152,7 +154,7 @@
             return xScale.getValueForPixel(pixelX);
         }
 
-        let isDragging = false;
+         let isDragging = false;
 
         bandgapLine.addEventListener('mousedown', startDragging);
         chartContainer.addEventListener('mousedown', startDragging);
@@ -173,15 +175,18 @@
                 let energy = energyFromPixel(pixelX);
                 energy = Math.max(minEnergy, Math.min(maxEnergy, energy));
                 bandgapEnergy = energy;
-                updateBandgapLine(energy);
+                updateBandgapLine(energy, false);  // Don't calculate efficiency while dragging
             }
             e.preventDefault();
         }
 
         function onMouseUp(e) {
-            isDragging = false;
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
+            if (isDragging) {
+                isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                calculateEfficiency(bandgapEnergy);  // Calculate efficiency when dragging stops
+            }
             e.preventDefault();
         }
 
@@ -206,8 +211,7 @@
                 console.error('Error:', error);
             });
         }
-
-        // Initialize bandgap line
+            // Initialize bandgap line
         updateBandgapLine(bandgapEnergy);
     </script>
 </body>

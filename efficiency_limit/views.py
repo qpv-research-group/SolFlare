@@ -35,9 +35,14 @@ def calculate_efficiency(request):
         back_reflector = True
         T = 298
         V = np.arange(0, 4, 0.01)
-        ideality = 1 / np.sqrt(2) if back_reflector else 1
+        ideality = 1 / np.sqrt(2) if back_r
+        eflector else 1
 
-        junction_list = [Junction(kind='DB', T=T, Eg=eg_value, A=1, R_shunt=np.inf, n=ideality)]
+        junction_list = []
+
+        for eg in [eg_value]:
+            junction_list.append(Junction(kind='DB', T=T, Eg=eg_value, A=1, R_shunt=np.inf, n=ideality))
+
         my_solar_cell = SolarCell(junction_list, T=T, R_series=0)
 
         solar_cell_solver(my_solar_cell, 'iv',
