@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Efficiency Limit Calculator</title>
+</head>
+<body>
+    <h1>Efficiency Limit Calculator</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Calculate</button>
+    </form>
+
+    {% if graphic %}
+        <h2>Results</h2>
+        <img src="data:image/png;base64,{{ graphic }}" alt="Light Source Spectrum">
+        <p>Efficiency: {{ efficiency|floatformat:2 }}%</p>
+        <p>Voc: {{ voc|floatformat:2 }} V</p>
+        <p>Jsc: {{ jsc|floatformat:2 }} mA/cm2</p>
+        <p>FF: {{ ff|floatformat:2 }}%</p>
+    {% endif %}
+</body>
+</html>

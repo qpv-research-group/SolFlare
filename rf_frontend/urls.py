@@ -22,5 +22,7 @@ from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("", include("siliconabsorption.urls"), name="siliconabsorption")
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path("", include("siliconabsorption.urls"), name="siliconabsorption"),
+    path('efficiency_limit/', include('efficiency_limit.urls')),
+
+              ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

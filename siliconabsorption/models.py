@@ -3,6 +3,9 @@ import io
 
 from django.db import models
 
+# from numba import config
+# config.DISABLE_JIT = True
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -17,6 +20,7 @@ from rayflare.transfer_matrix_method import tmm_structure
 from rayflare.textures import regular_pyramids
 from rayflare.options import default_options
 
+from time import time
 
 class siliconCalculator:
 # Constructor that sets up empty instance varibles
@@ -60,31 +64,26 @@ class siliconCalculator:
         options.coherent = False
         options.depth_spacing = profile_spacing
 
+        if self.alrear:
+            transmission = Al
+
+        else:
+            transmission = Air
+
 # Setup different structures depending on the form input.
 
         if self.texture == False: # Is this a planar or textured calculation?
-            if self.ARC_width == 0 :  # Planar Si, with no anti-reflection coating
-                if self.alrear == False :
-                    structure = tmm_structure([Layer(width=self.Si_width, material=Si)], incidence=Air, transmission=Air)
-                    options.coherency_list = ['i']
-                else:
-                    structure = tmm_structure([Layer(width=self.Si_width, material=Si)], incidence=Air, transmission=Al)
-                    options.coherency_list = ['i']
-            else :  # Planar Si, with an Si3N4 anti-reflection coating of thickness ARC_width
-                if self.alrear == False :    #
-                    structure=tmm_structure([Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
-                          incidence=Air, transmission=Air)
-                    options.coherency_list = ['c', 'i']
-                else:
-                    structure = tmm_structure(
-                        [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
-                        incidence=Air, transmission=Al)
-                    options.coherency_list = ['c', 'i']
+                structure = tmm_structure(
+                    [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
+                    incidence=Air, transmission=Al)
+                options.coherency_list = ['c', 'i']
 
         else :  # In the case of a textured surface setup some additional variables
             # Texture parameters
-            front_texture = regular_pyramids(elevation_angle=55, upright=True)
-            rear_texture = regular_pyramids(elevation_angle=55, upright=False)
+            front_texture_ARC = regular_pyramids(elevation_angle=55, upright=True,
+                                                 interface_layers=[Layer(self.ARC_width, SiN)],
+                                                 analytical=True)
+            rear_texture = regular_pyramids(elevation_angle=54, upright=False)
             # Simulation options
             options.nx = 20
             options.ny = 20
@@ -92,40 +91,23 @@ class siliconCalculator:
             options.bulk_profile = True
             options.depth_spacing_bulk = profile_spacing
             options.project_name = "Si_optics"
+            options.coherency_list = ['c', 'i']
+            options.maximum_passes = 20
 
-            if self.ARC_width==0: # In the case of no ARC.
-                structure = rt_structure(textures=[front_texture, rear_texture],
-                                         materials=[Si],
-                                         widths=[self.Si_width],
-                                         incidence=Air,
-                                         transmission=Air,
-                                         options=options)
-            else:   # In the case of an ARC
-                front_texture_ARC = regular_pyramids(elevation_angle=55, upright=True,
-                                             interface_layers=[Layer(self.ARC_width, SiN)])
-                options.coherency_list = ['c', 'i']
-                if self.alrear == False: # In the case of no Al rear reflector
-                    structure = rt_structure(textures=[front_texture_ARC, rear_texture],
-                                             materials=[Si],
-                                             widths=[self.Si_width],
-                                             incidence=Air,
-                                             transmission=Air,
-                                             use_TMM=True,
-                                             options=options,
-                                             save_location='current')
-                else:
-                    structure = rt_structure(textures=[front_texture_ARC, rear_texture],
-                                    materials=[Si],
-                                    widths=[self.Si_width],
-                                    incidence=Air,
-                                    transmission=Al,
-                                    use_TMM=True,
-                                    options=options,
-                                    save_location='current')
+            structure = rt_structure(textures=[front_texture_ARC, rear_texture],
+                            materials=[Si],
+                            widths=[self.Si_width],
+                            incidence=Air,
+                            transmission=transmission,
+                            use_TMM=True,
+                            options=options,
+                            save_location='current')
 
 
 # Perform the calculation
-        calculation_result=structure.calculate(options)
+        start = time()
+        calculation_result = structure.calculate(options)
+        print("calculation time:", time() - start)
 
         # Store wavelengths in the instance variable xpoints incase it needs to be saved later
         self.xpointsR = wavelengths * 1e9
@@ -169,8 +151,8 @@ class siliconCalculator:
         # Plot the graph
         plt.clf() # Clear the figure so that graphs don't stack up.
 
-        plt.plot(self.xpointsR, self.ypointsA*(1-self.shading), label='A')
-        plt.plot(self.xpointsR,self.ypointsR, label='R')
+        plt.plot(self.xpointsR, self.ypointsA*(1-self.shading), label='A', color='k')
+        plt.plot(self.xpointsR,self.ypointsR, label='R', color='b', linestyle='--')
         plt.text(250,0.95, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
         weighted_photon_flux = AM15G.spectrum(wavelengths)[1] / np.max(AM15G.spectrum(wavelengths)[1])
         plt.text(250,1.005, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsR*weighted_photon_flux)))
