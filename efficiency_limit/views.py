@@ -35,8 +35,7 @@ def calculate_efficiency(request):
         back_reflector = True
         T = 298
         V = np.arange(0, 4, 0.01)
-        ideality = 1 / np.sqrt(2) if back_r
-        eflector else 1
+        ideality = 1 / np.sqrt(2) if back_reflector else 1
 
         junction_list = []
 
