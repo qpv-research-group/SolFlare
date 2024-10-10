@@ -23,24 +23,27 @@ from .models import siliconCalculator
 
 graphobj = siliconCalculator()
 
-def generate_svg(layers):
-    base_colors = sns.cubehelix_palette(len(layers), start=2.2, rot=0.1, dark=0.2, light=0.8)
-    colors = [f"rgba({int(r * 255)},{int(g * 255)},{int(b * 255)},0.7)" for r, g, b in base_colors]
+def generate_svg(front_text, layers):
+    base_colors = sns.cubehelix_palette(len(layers) - 2, start=2.2, rot=0.04, dark=0.2, light=0.8)
+    colors = ["rgba(255, 255, 255, 1.0)"] + [f"rgba({int(r * 255)},{int(g * 255)},{int(b * 255)}, 1.0)" for r, g, b in base_colors] + \
+             ["rgba(255, 255, 255, 1.0)"]
 
+
+    texture_list = [layer.get('textured') for layer in layers]
     svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">'
     y = 200
     for i in range(len(layers) - 1, -1, -1):  # Reverse order to draw from bottom to top
         layer = layers[i]
         height = layer['height']
         color = colors[i]
-        if layer.get('textured'):
+        if texture_list[i]:
             # Draw the layer above first
             if i > 0:
                 svg += f'<rect x="0" y="{y - height}" width="300" height="{height}" fill="{colors[i - 1]}" />'
             # Then draw the zigzag pattern
             svg += f'<path d="M0 {y} L300 {y} L300 {y - height} '
             for x in range(300, -1, -30):
-                svg += f'L{x} {y - height + (height/3) if x % 60 == 0 else y - height} '
+                svg += f'L{x} {y - height + 20 if x % 60 == 0 else y - height} '
             svg += f'L0 {y - height} Z" fill="{color}" />'
         else:
             svg += f'<rect x="0" y="{y - height}" width="300" height="{height}" fill="{color}" />'
@@ -52,43 +55,51 @@ def generate_svg(layers):
 def solar_cell_view(request):
     global graphobj
 
-    texture = False
+    layer_form = layerParameters(request.POST or None)
+    texture_form = textureParameters(request.POST or None)
 
-    total_height = 200
-    layers = [
-        # {"height": 50},  # Base layer
-        {"height": total_height/2, "textured": True},  # Textured layer
-        {"height": total_height/4},  # Fourth layer
-        {"height": total_height/4},  # Top layer
-    ]
+    if request.method == 'POST' and 'calculate' in request.POST:
+        if layer_form.is_valid() and texture_form.is_valid():
+            # Process form data
+            pero_thickness = layer_form.cleaned_data['pero_thickness']
+            silicon_thickness = layer_form.cleaned_data['silicon_thickness']
+            arc_thickness = layer_form.cleaned_data['arc_thickness']
+            agrear = layer_form.cleaned_data['agrear']
 
-    svg_content = generate_svg(layers)  # Generate your SVG content
+            front_text = texture_form.cleaned_data['front_texture']
+            middle_text = texture_form.cleaned_data['middle_texture']
+            rear_text = texture_form.cleaned_data['rear_texture']
 
-    if request.method == 'POST':
-        form = layerParameters(request.POST)
-        if form.is_valid():
-            silicon_thickness = form.cleaned_data['silicon_thickness']
-            arc_thickness = form.cleaned_data['arc_thickness']
-            agrear = form.cleaned_data['agrear']
-            shading = form.cleaned_data['shading']
-            graphobj.setvalues(silicon_thickness * 1e-6, shading / 100, arc_thickness * 1e-9,
-                               texture, agrear)
+            # Perform your calculations here
 
-        form_texture = textureParameters(request.POST)
+            graphobj.setvalues(silicon_thickness * 1e-6, pero_thickness * 1e-6,arc_thickness * 1e-9,
+                               agrear, front_text, middle_text, rear_text)
+            graph = graphobj.getgraph()
 
-        if form_texture.is_valid():
-            front_text = form_texture.cleaned_data['front_texture']
-            middle_text = form_texture.cleaned_data['middle_texture']
-            rear_text = form_texture.cleaned_data['rear_texture']
+        else:
+            graph = None
 
     else:
         form = layerParameters()  # Create a new form instance with default values
         form_texture = textureParameters()
+        front_text = False
+        middle_text = False
+        rear_text = False
+        graph = None
+
+    layers = [
+        {"height": 10, "textured": False},  # Air layer
+        {"height": 40, "textured": front_text},  # Textured layer
+        {"height": 130, "textured": middle_text},  # Top layer
+        {"height": 20, "textured": rear_text},  # Air layer
+    ]
+
+    svg_content = generate_svg(front_text, layers)  # Generate your SVG content
 
     context = {
-        'form': form,
-        'form_texture': form_texture,
-        'graph': graphobj.getgraph(),
+        'form': layer_form,
+        'form_texture': texture_form,
+        'graph': graph,
         'svg_content': mark_safe(svg_content),  # Make sure to import mark_safe
     }
 

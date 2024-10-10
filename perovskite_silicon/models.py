@@ -3,8 +3,8 @@ import io
 
 from django.db import models
 
-# from numba import config
-# config.DISABLE_JIT = True
+from numba import config
+config.DISABLE_JIT = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,22 +27,24 @@ class siliconCalculator:
     def __init__(self):
         self.Si_width = 180e-6
         self.ARC_width = 80e-9
-        self.shading = 2
-        self.texture = False
         self.agrear = False
+        self.front_text = False
+        self.middle_text = False
+        self.back_text = False
         self.xpointsR = np.empty(0)
         self.ypointsA = np.empty(0)
         self.xpointsG = np.empty(0)
         self.ypointsG = np.empty(0)
 
 # A method that sets parameters according to the form input
-    def setvalues(self,Si_width,shading,arcthickness,texture,agrear):
+    def setvalues(self, Si_width, pero_width, arcthickness, agrear, front_text, middle_text, back_text):
         self.Si_width = Si_width      # Si thickness is passed in units of [m] from views.py
-        self.shading = shading        # Shading is passed as a fraction from views.py
+        self.pero_width = pero_width  # Perovskite thickness is passed in units of [m] from views.py
         self.ARC_width = arcthickness   # ARC thickness is passed in units of [m] from views.py
-        self.texture = texture
         self.agrear = agrear
-
+        self.front_text = front_text
+        self.middle_text = middle_text
+        self.back_text = back_text
     def getgraph(self):
 
         n_rays = 100
@@ -55,15 +57,17 @@ class siliconCalculator:
                             output_units='photon_flux_per_m')
 
         Si = material("Si")()
-        SiN = material("Si3N4")()
         Air = material("Air")()
         Ag = material("Ag")()
+        pero = material("Perovskite_CsBr_1p6eV")()
+        MgF2 = material("MgF2_RdeM")()
 
         options = default_options()
         options.pol = 'u'
         options.wavelength = wavelengths
         options.coherent = False
         options.depth_spacing = profile_spacing
+        options.parallel = False
 
         if self.agrear:
             transmission = Ag
@@ -71,26 +75,45 @@ class siliconCalculator:
         else:
             transmission = Air
 
-# Setup different structures depending on the form input.
+        # Setup different structures depending on the form input.
+        if not np.any([self.front_text, self.middle_text, self.back_text]):
+            calc_type = 'TMM'
 
-        if self.texture == False: # Is this a planar or textured calculation?
+        # elif not self.front_text and not self.middle_text and self.back_text:
+        #     calc_type = 'combined'
+
+        else:
+            calc_type = 'RT'
+
+        print(calc_type)
+
+        if calc_type == 'TMM': # Is this a planar or textured calculation?
                 structure = tmm_structure(
-                    [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
-                    incidence=Air, transmission=transmission)
-                options.coherency_list = ['c', 'i']
+                    [
+                        Layer(width=self.ARC_width, material=MgF2),
+                        Layer(width=self.pero_width, material=pero),
+                        Layer(width=self.Si_width, material=Si),
 
-        else :  # In the case of a textured surface setup some additional variables
-            # Texture parameters
-            front_texture_ARC = regular_pyramids(elevation_angle=55, upright=True,
-                                                 interface_layers=[Layer(self.ARC_width, SiN)],
+                    ],
+                    incidence=Air, transmission=transmission)
+                options.coherent = False
+                options.coherency_list = ['c', 'c', 'i']
+
+        elif calc_type == 'RT' :
+
+            front_texture_ARC = regular_pyramids(elevation_angle=54, upright=True,
+                                                 interface_layers=[
+                                                     Layer(self.ARC_width, MgF2),
+                                                    Layer(self.pero_width, pero)
+                                                 ],
                                                  analytical=True)
             rear_texture = regular_pyramids(elevation_angle=54, upright=False)
             # Simulation options
-            options.nx = 20
-            options.ny = 20
+            options.nx = 10
+            options.ny = 10
             options.n_rays = n_rays
             options.bulk_profile = True
-            options.depth_spacing_bulk = profile_spacing
+            options.depth_spacing_bulk = 50e-6
             options.project_name = "Si_optics"
             options.coherency_list = ['c', 'i']
             options.maximum_passes = 20
@@ -102,7 +125,9 @@ class siliconCalculator:
                             transmission=transmission,
                             use_TMM=True,
                             options=options,
-                            save_location='current')
+                            save_location='current',
+                            overwrite=True
+                                     )
 
 
 # Perform the calculation
@@ -114,45 +139,21 @@ class siliconCalculator:
         self.xpointsR = wavelengths * 1e9
 
         # Extract the absorption data depending on the method used:
-        if self.texture == False:
-            self.ypointsA = calculation_result['A']
+        if calc_type == 'TMM':
+            self.ypointsA_pero = calculation_result['A_per_layer'][:,1]
+            self.ypointsA_Si = calculation_result['A_per_layer'][:,2]
         else:
-            self.ypointsA = calculation_result['A_per_layer'][:, 0]
+            self.ypointsA_pero = calculation_result['A_per_interface'][0][:,1]
+            self.ypointsA_Si = calculation_result['A_per_layer'][:,0]
 
         # Store reflectance data in an instance variable ypointsR incase it needs to be saved later
-        self.ypointsR = calculation_result['R']*(1-self.shading)+self.shading
+        self.ypointsR = calculation_result['R']
 
         # calculate cumulative generation
-
-        if self.texture == True:
-            absorption_profile = calculation_result['profile'] * 1e6  # array with dimensions (n_wavelengths, n_depths)
-        # units are m^-1
-
-        else:
-            exclude_points = np.ceil(self.ARC_width / profile_spacing)  # figure out how many points to exclude for the ARC
-            planar_result_ARC = structure.calculate_profile(options)
-            absorption_profile = planar_result_ARC['profile'][:,int(exclude_points):] * 1e6  # array with dimensions (n_wavelengths, n_depths)
-
-        # integrate over wavelengths with the photon flux:
-        weighted_absorption = absorption_profile * AM15G.spectrum(wavelengths)[1][:, None]
-        # units are m-1 * # of photons m^-2 m^-1, overall m^-4
-
-        # integrate over wavelengths
-        total_generation = np.trapz(weighted_absorption, wavelengths, axis=0)
-        # units are # of photons m^-3, as a function of depth in m
-
-        cumulative_generation = np.cumsum(total_generation) * profile_spacing
-        # units are # of photons m^-3, as a function of depth in m
-
-        depth = np.linspace(0, self.Si_width, len(cumulative_generation))
-        # I guess PC1D wants this in units of m^-2 cm-1, so divide by 10?
-        self.xpointsG=depth * 1e6
-        self.ypointsG=(1-self.shading)*cumulative_generation / 10
-
         # Plot the graph
         plt.clf() # Clear the figure so that graphs don't stack up.
-
-        plt.plot(self.xpointsR, self.ypointsA*(1-self.shading), label='A', color='k')
+        plt.plot(self.xpointsR, self.ypointsA_pero, label='Perovskite', color='r')
+        plt.plot(self.xpointsR, self.ypointsA_Si, label='Si', color='k')
         plt.plot(self.xpointsR,self.ypointsR, label='R', color='b', linestyle='--')
         plt.text(250,0.95, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
         weighted_photon_flux = AM15G.spectrum(wavelengths)[1] / np.max(AM15G.spectrum(wavelengths)[1])
