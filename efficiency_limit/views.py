@@ -6,6 +6,7 @@ from solcore.light_source import LightSource
 from solcore.solar_cell import SolarCell
 from solcore.solar_cell_solver import solar_cell_solver
 from solcore.structure import Junction
+from solcore.state import State
 
 @csrf_exempt
 def calculate_efficiency(request):
@@ -28,7 +29,7 @@ def calculate_efficiency(request):
         # Your efficiency calculation code here
         back_reflector = True
         T = 298
-        V = np.arange(0, 4, 0.01)
+        V = np.arange(0, np.sum(eg_values) + 0.2, 0.01)
         ideality = 1 / np.sqrt(2) if back_reflector else 1
 
         junction_list = []
@@ -38,12 +39,19 @@ def calculate_efficiency(request):
 
         my_solar_cell = SolarCell(junction_list, T=T, R_series=0)
 
+        options = State({
+            'T_ambient': T,
+            'db_mode': 'top_hat',
+            'voltages': V,
+            'light_iv': True,
+            'internal_voltages': np.arange(-1, np.sum(eg_values) + 0.8, 0.01),
+            'wavelength': wl,
+            'mpp': True,
+            'light_source': light,
+                         })
+
         solar_cell_solver(my_solar_cell, 'iv',
-                          user_options={'T_ambient': T, 'db_mode': 'top_hat', 'voltages': V,
-                                        'light_iv': True,
-                                        'internal_voltages': np.arange(-1, np.sum(eg_values) + 0.8, 0.01),
-                                        'wavelength': wl,
-                                        'mpp': True, 'light_source': light})
+                          user_options=options)
 
         # Get efficiency values
         efficiency = np.round(my_solar_cell.iv.Eta * 100, 2)

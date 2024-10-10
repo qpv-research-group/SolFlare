@@ -28,17 +28,30 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         #results h2 { margin-top: 0; }
+         .logo-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            height: 50px;
+        }
     </style>
 </head>
 <body>
-    <div class="logo-container">
-        <img src="{% static 'unswlogo.png' %}" alt="UNSW Logo">
-        <a href="http://www.solcore.solar"><img src="{% static 'solcore.png' %}" alt="Solcore Logo"></a>
-    </div>
+<div class="logo-container">
+    <img src="{% static 'unswlogo.png' %}" alt="UNSW Logo">
+    <a href="http://www.solcore.solar"><img src="{% static 'solcore.png' %}" alt="Solcore Logo"></a>
+</div>
 
     <h1>Efficiency Limit Calculator</h1>
 
-    <p>The efficiency limit is calculated using the Shockley-Queisser model implemented in <a href="http://www.solcore.solar">Solcore</a>. Select the number of junctions and drag the colored lines to change the bandgaps and see how it affects the theoretical maximum efficiency of a multi-junction solar cell.</p>
+    <p>The efficiency limit is calculated using the Shockley-Queisser model, as implemented in <a href="http://www.solcore.solar">Solcore</a>.
+    Select the number of junctions and drag the colored lines, or the slider above the plot, to change the bandgaps and see
+    how it affects the theoretical maximum efficiency of a multi-junction solar cell. The short-circuit current in each junction
+    is displayed below the bandgap.</p>
 
     <form id="eg-form" method="post">
         {% csrf_token %}
@@ -63,7 +76,7 @@
 <script>
     let chart;
     let bandgapLines = [];
-    const colors = ['#FF4136', '#FF851B', '#FFDC00', '#2ECC40', '#0074D9', '#B10DC9', '#85144b', '#3D9970', '#39CCCC', '#01FF70'];
+const colors = ['#B10DC9', '#0074D9', '#2ECC40', '#FFDC00', '#FF851B', '#FF4136', '#01FF70', '#39CCCC', '#3D9970', '#85144b'];
 
     function initializeChart(spectrumData) {
         const ctx = document.getElementById('spectrum-chart').getContext('2d');
