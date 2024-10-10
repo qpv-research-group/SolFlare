@@ -23,10 +23,15 @@ from .models import siliconCalculator
 
 graphobj = siliconCalculator()
 
-def generate_svg(front_text, layers):
+def generate_svg(front_text, layers, agrear):
     base_colors = sns.cubehelix_palette(len(layers) - 2, start=2.2, rot=0.04, dark=0.2, light=0.8)
-    colors = ["rgba(255, 255, 255, 1.0)"] + [f"rgba({int(r * 255)},{int(g * 255)},{int(b * 255)}, 1.0)" for r, g, b in base_colors] + \
-             ["rgba(255, 255, 255, 1.0)"]
+    colors = ["rgba(255, 255, 255, 1.0)"] + [f"rgba({int(r * 255)},{int(g * 255)},{int(b * 255)}, 1.0)" for r, g, b in base_colors]
+
+    if agrear:
+        colors.append("rgba(100, 100, 100, 1.0)")
+
+    else:
+        colors.append("rgba(255, 255, 255, 1.0)")
 
 
     texture_list = [layer.get('textured') for layer in layers]
@@ -72,7 +77,7 @@ def solar_cell_view(request):
 
             # Perform your calculations here
 
-            graphobj.setvalues(silicon_thickness * 1e-6, pero_thickness * 1e-6,arc_thickness * 1e-9,
+            graphobj.setvalues(silicon_thickness * 1e-6, pero_thickness * 1e-9, arc_thickness * 1e-9,
                                agrear, front_text, middle_text, rear_text)
             graph = graphobj.getgraph()
 
@@ -80,21 +85,22 @@ def solar_cell_view(request):
             graph = None
 
     else:
-        form = layerParameters()  # Create a new form instance with default values
-        form_texture = textureParameters()
+        layer_form = layerParameters()  # Create a new form instance with default values
+        texture_form = textureParameters()
         front_text = False
         middle_text = False
         rear_text = False
         graph = None
+        agrear = False
 
     layers = [
         {"height": 10, "textured": False},  # Air layer
-        {"height": 40, "textured": front_text},  # Textured layer
-        {"height": 130, "textured": middle_text},  # Top layer
-        {"height": 20, "textured": rear_text},  # Air layer
+        {"height": 35, "textured": front_text},  # Textured layer
+        {"height": 115, "textured": middle_text},  # Top layer
+        {"height": 30, "textured": rear_text},  # Air layer
     ]
 
-    svg_content = generate_svg(front_text, layers)  # Generate your SVG content
+    svg_content = generate_svg(front_text, layers, agrear)  # Generate your SVG content
 
     context = {
         'form': layer_form,

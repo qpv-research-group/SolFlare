@@ -1,7 +1,7 @@
 from django import forms
 
 class layerParameters(forms.Form):
-    pero_thickness = forms.FloatField(label='Perovskite thickness (µm)', initial=0.5)
+    pero_thickness = forms.FloatField(label='Perovskite thickness (nm)', initial=500)
     silicon_thickness = forms.FloatField(label='Si thickness (µm)', initial=180)
     arc_thickness = forms.FloatField(label='ARC thickness (nm)', initial=80)
     # texture = forms.BooleanField(label='Texture?', initial=False,required=False)

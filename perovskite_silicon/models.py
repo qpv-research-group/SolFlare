@@ -17,7 +17,7 @@ from solcore.constants import q
 from rayflare.ray_tracing import rt_structure
 from rayflare.transfer_matrix_method import tmm_structure
 
-from rayflare.textures import regular_pyramids
+from rayflare.textures import regular_pyramids, planar_surface
 from rayflare.options import default_options
 
 from time import time
@@ -76,14 +76,14 @@ class siliconCalculator:
             transmission = Air
 
         # Setup different structures depending on the form input.
-        if not np.any([self.front_text, self.middle_text, self.back_text]):
+        if not np.any([self.front_text, self.middle_text, self.back_text]): # all planar
             calc_type = 'TMM'
 
-        # elif not self.front_text and not self.middle_text and self.back_text:
-        #     calc_type = 'combined'
+        elif (not self.front_text and not self.middle_text) or (self.front_text and self.middle_text):
+            calc_type = 'RT_twosurfaces'
 
         else:
-            calc_type = 'RT'
+            calc_type = 'RT_threesurfaces'
 
         print(calc_type)
 
@@ -99,24 +99,37 @@ class siliconCalculator:
                 options.coherent = False
                 options.coherency_list = ['c', 'c', 'i']
 
-        elif calc_type == 'RT' :
+        elif calc_type == 'RT_twosurfaces':
 
-            front_texture_ARC = regular_pyramids(elevation_angle=54, upright=True,
-                                                 interface_layers=[
-                                                     Layer(self.ARC_width, MgF2),
-                                                    Layer(self.pero_width, pero)
-                                                 ],
-                                                 analytical=True)
-            rear_texture = regular_pyramids(elevation_angle=54, upright=False)
+            if self.front_text:
+                front_texture_ARC = regular_pyramids(elevation_angle=54, upright=True,
+                                                     interface_layers=[
+                                                         Layer(self.ARC_width, MgF2),
+                                                         Layer(self.pero_width, pero)
+                                                     ],
+                                                     analytical=True)
+
+            else:
+                front_texture_ARC = planar_surface(interface_layers=[
+                                                         Layer(self.ARC_width, MgF2),
+                                                         Layer(self.pero_width, pero)
+                                                     ],
+                                                     analytical=True)
+
+            if self.back_text:
+                rear_texture = regular_pyramids(elevation_angle=54, upright=False,
+                                                analytical=True, phong=True)
+
+            else:
+                rear_texture = planar_surface()
+
             # Simulation options
             options.nx = 10
             options.ny = 10
             options.n_rays = n_rays
-            options.bulk_profile = True
             options.depth_spacing_bulk = 50e-6
             options.project_name = "Si_optics"
-            options.coherency_list = ['c', 'i']
-            options.maximum_passes = 20
+            options.maximum_passes = 30
 
             structure = rt_structure(textures=[front_texture_ARC, rear_texture],
                             materials=[Si],
@@ -129,6 +142,53 @@ class siliconCalculator:
                             overwrite=True
                                      )
 
+        elif calc_type == 'RT_threesurfaces':
+
+            if self.front_text:
+                front_texture_ARC = regular_pyramids(elevation_angle=54, upright=True,
+                                                     interface_layers=[
+                                                         Layer(self.ARC_width, MgF2),
+                                                     ],
+                                                     analytical=True)
+
+            else:
+                front_texture_ARC = planar_surface(interface_layers=[
+                    Layer(self.ARC_width, MgF2),
+                ],
+                    analytical=True)
+
+            if self.middle_text:
+                middle_texture = regular_pyramids(elevation_angle=54, upright=True,
+                                                     analytical=True)
+
+            else:
+                middle_texture = planar_surface()
+
+            if self.back_text:
+                rear_texture = regular_pyramids(elevation_angle=54, upright=False,
+                                                analytical=True, phong=True)
+
+            else:
+                rear_texture = planar_surface()
+
+            # Simulation options
+            options.nx = 10
+            options.ny = 10
+            options.n_rays = n_rays
+            options.depth_spacing_bulk = 50e-6
+            options.project_name = "Si_optics"
+            options.maximum_passes = 20
+
+            structure = rt_structure(textures=[front_texture_ARC, middle_texture, rear_texture],
+                                     materials=[pero, Si],
+                                     widths=[self.pero_width, self.Si_width],
+                                     incidence=Air,
+                                     transmission=transmission,
+                                     use_TMM=True,
+                                     options=options,
+                                     save_location='current',
+                                     overwrite=True
+                                     )
 
 # Perform the calculation
         start = time()
@@ -142,12 +202,18 @@ class siliconCalculator:
         if calc_type == 'TMM':
             self.ypointsA_pero = calculation_result['A_per_layer'][:,1]
             self.ypointsA_Si = calculation_result['A_per_layer'][:,2]
-        else:
+        elif calc_type == 'RT_twosurfaces':
             self.ypointsA_pero = calculation_result['A_per_interface'][0][:,1]
             self.ypointsA_Si = calculation_result['A_per_layer'][:,0]
+        elif calc_type == 'RT_threesurfaces':
+            self.ypointsA_pero = calculation_result['A_per_layer'][:,0]
+            self.ypointsA_Si = calculation_result['A_per_layer'][:,1]
 
         # Store reflectance data in an instance variable ypointsR incase it needs to be saved later
         self.ypointsR = calculation_result['R']
+
+        J_pero = np.trapz(self.ypointsA_pero * AM15G.spectrum(wavelengths)[1] * q, wavelengths)/10
+        J_Si = np.trapz(self.ypointsA_Si * AM15G.spectrum(wavelengths)[1] * q, wavelengths)/10
 
         # calculate cumulative generation
         # Plot the graph
@@ -155,9 +221,11 @@ class siliconCalculator:
         plt.plot(self.xpointsR, self.ypointsA_pero, label='Perovskite', color='r')
         plt.plot(self.xpointsR, self.ypointsA_Si, label='Si', color='k')
         plt.plot(self.xpointsR,self.ypointsR, label='R', color='b', linestyle='--')
-        plt.text(250,0.95, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
-        weighted_photon_flux = AM15G.spectrum(wavelengths)[1] / np.max(AM15G.spectrum(wavelengths)[1])
-        plt.text(250,1.005, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsR*weighted_photon_flux)))
+        # plt.text(250,0.95, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
+        # weighted_photon_flux = AM15G.spectrum(wavelengths)[1] / np.max(AM15G.spectrum(wavelengths)[1])
+        # plt.text(250,1.005, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsR*weighted_photon_flux)))
+        plt.text(300, 0.65, r'$J_{sc}$ = ' + str("%.2f" % J_pero) + ' mA/cm$^2$')
+        plt.text(800, 0.65, r'$J_{sc}$ = ' + str("%.2f" % J_Si) + ' mA/cm$^2$')
         plt.xlabel('Wavelength (nm)')
         plt.ylabel('Absorption & Reflection')
         plt.ylim(0, 1.05)
