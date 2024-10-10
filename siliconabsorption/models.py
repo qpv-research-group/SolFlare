@@ -75,7 +75,7 @@ class siliconCalculator:
         if self.texture == False: # Is this a planar or textured calculation?
                 structure = tmm_structure(
                     [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
-                    incidence=Air, transmission=Al)
+                    incidence=Air, transmission=transmission)
                 options.coherency_list = ['c', 'i']
 
         else :  # In the case of a textured surface setup some additional variables
