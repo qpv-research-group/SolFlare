@@ -13,6 +13,7 @@
         .form-container td { padding: 5px 10px 5px 0; }
         #svg-container { max-width: 200px; margin: auto; }
     </style>
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="container-fluid" style="padding: 20px">
 
@@ -76,12 +77,82 @@
     </div>
 
     <div class="col-md-6">
-        {% if graph %}
-            <img src="data:image/png;base64,{{ graph }}" alt="Absorption Graph" class="img-fluid">
-        {% else %}
-            <p>The absorption graph will appear here after you click 'Calculate'.</p>
-        {% endif %}
+        <canvas id="absorptionChart"></canvas>
     </div>
+
+   <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var graphData = {{ graph_data|safe }};
+
+            if (graphData) {
+                var ctx = document.getElementById('absorptionChart').getContext('2d');
+
+                // Calculate min and max for x-axis
+                var minWavelength = Math.min(...graphData.wavelengths);
+                var maxWavelength = Math.max(...graphData.wavelengths);
+
+                // Round down to nearest multiple of 50 for min, and up for max
+                var xAxisMin = Math.floor(minWavelength / 50) * 50;
+                var xAxisMax = Math.ceil(maxWavelength / 50) * 50;
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: graphData.wavelengths,
+                        datasets: [{
+                            label: 'Perovskite Absorption',
+                            data: graphData.wavelengths.map((x, i) => ({x: x, y: graphData.pero_absorption[i]})),
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.3)',
+                            fill: true
+                        }, {
+                            label: 'Silicon Absorption',
+                            data: graphData.wavelengths.map((x, i) => ({x: x, y: graphData.si_absorption[i]})),
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.3)',
+                            fill: true
+                        }, {
+                            label: 'Reflection',
+                            data: graphData.wavelengths.map((x, i) => ({x: x, y: graphData.reflection[i]})),
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.3)',
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                title: {
+                                    display: true,
+                                    text: 'Wavelength (nm)'
+                                },
+                                ticks: {
+                                    stepSize: 50,
+                                    callback: function(value, index, values) {
+                                        return value.toFixed(0);
+                                    }
+                                },
+                                min: xAxisMin,
+                                max: xAxisMax
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Absorption / Reflection'
+                                },
+                                min: 0,
+                                max: 1
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('absorptionChart').innerHTML = 'The absorption graph will appear here after you click \'Calculate\'.';
+            }
+        });
+    </script>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -57,6 +57,11 @@ def generate_svg(front_text, layers, agrear):
     return svg
 
 
+from django.shortcuts import render
+import json
+
+# ... (other imports remain the same)
+
 def solar_cell_view(request):
     global graphobj
 
@@ -75,94 +80,36 @@ def solar_cell_view(request):
             middle_text = texture_form.cleaned_data['middle_texture']
             rear_text = texture_form.cleaned_data['rear_texture']
 
-            # Perform your calculations here
-
             graphobj.setvalues(silicon_thickness * 1e-6, pero_thickness * 1e-9, arc_thickness * 1e-9,
                                agrear, front_text, middle_text, rear_text)
-            graph = graphobj.getgraph()
-
+            graph_data = graphobj.getgraph()
         else:
-            graph = None
-
+            graph_data = None
     else:
-        layer_form = layerParameters()  # Create a new form instance with default values
+        layer_form = layerParameters()
         texture_form = textureParameters()
         front_text = False
         middle_text = False
         rear_text = False
-        graph = None
+        graph_data = None
         agrear = False
 
     layers = [
-        {"height": 10, "textured": False},  # Air layer
-        {"height": 35, "textured": front_text},  # Textured layer
-        {"height": 115, "textured": middle_text},  # Top layer
-        {"height": 30, "textured": rear_text},  # Air layer
+        {"height": 10, "textured": False},
+        {"height": 35, "textured": front_text},
+        {"height": 115, "textured": middle_text},
+        {"height": 30, "textured": rear_text},
     ]
 
-    svg_content = generate_svg(front_text, layers, agrear)  # Generate your SVG content
+    svg_content = generate_svg(front_text, layers, agrear)
 
     context = {
         'form': layer_form,
         'form_texture': texture_form,
-        'graph': graph,
-        'svg_content': mark_safe(svg_content),  # Make sure to import mark_safe
+        'svg_content': mark_safe(svg_content),
     }
 
+    if graph_data:
+        context['graph_data'] = mark_safe(json.dumps(graph_data))
+
     return render(request, 'perovskite_silicon.html', context)
-
-
-def cell_calculation(request):
-    # Your calculation code here
-    Si = material("Si")()
-    Air = material("Air")()
-    Ag = material("Ag")()
-    MgF2 = material("MgF2")()
-
-    Pvk = material("Perovskite_CsBr_1p6eV")()
-
-    n_rays = 200
-
-    d = 100e-6
-
-    wavelengths = np.linspace(300, 950, 50) * 1e-9
-
-    AM15G = LightSource(source_type='standard', version='AM1.5g', x=wavelengths,
-                        output_units='photon_flux_per_m')
-
-    options = default_options()
-
-    options.wavelength = wavelengths
-    options.project_name = 'pvk_Si_analytical_RT'
-    options.nx = 20
-    options.ny = 20
-    options.theta_in = 0.1
-    options.parallel = False  # for this example, with this choice of wavelengths, initializing the parallel
-    # threads takes more time than it saves on executing the ray-tracing. For a more transparent structure
-    # (at longer wavelengths in this case), this would no longer be true.
-    options.randomize_surface = True
-    options.I_thresh = 1e-3
-    options.depth_spacing_bulk = 1e-8
-    options.n_rays = n_rays
-    options.maximum_passes = 100
-    options.n_rays = n_rays
-    options.pol = 'u'
-
-    front_text = regular_pyramids(52, True, 1,
-                                  interface_layers=[Layer(100e-9, MgF2), Layer(1000e-9, Pvk)],
-                                  analytical=True)
-
-    # note: not setting analytical = True for the last surface; rays will no longer be travelling in a
-    # single direction after interacting with front_text_2, so this surface will not be treated analytically
-    # anyway, even if we set analytical = True.
-
-    rear_text = regular_pyramids(52, False, 1)
-
-    rt_str = rt_structure(textures=[front_text, rear_text], materials=[Si],
-                          widths=[d], incidence=Air, transmission=Ag,
-                          options=options, use_TMM=True, save_location='current',
-                          overwrite=True)
-
-
-    return JsonResponse({'efficiency': 25.0})
-

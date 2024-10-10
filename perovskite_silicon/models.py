@@ -48,7 +48,6 @@ class siliconCalculator:
     def getgraph(self):
 
         n_rays = 100
-        profile_spacing = 1e-7
 
         wavelengths = si(np.linspace(280, 1180, 50), 'nm')
 
@@ -65,8 +64,6 @@ class siliconCalculator:
         options = default_options()
         options.pol = 'u'
         options.wavelength = wavelengths
-        options.coherent = False
-        options.depth_spacing = profile_spacing
         options.parallel = False
 
         if self.agrear:
@@ -217,30 +214,40 @@ class siliconCalculator:
 
         # calculate cumulative generation
         # Plot the graph
-        plt.clf() # Clear the figure so that graphs don't stack up.
-        plt.plot(self.xpointsR, self.ypointsA_pero, label='Perovskite', color='r')
-        plt.plot(self.xpointsR, self.ypointsA_Si, label='Si', color='k')
-        plt.plot(self.xpointsR,self.ypointsR, label='R', color='b', linestyle='--')
-        # plt.text(250,0.95, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
-        # weighted_photon_flux = AM15G.spectrum(wavelengths)[1] / np.max(AM15G.spectrum(wavelengths)[1])
-        # plt.text(250,1.005, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsR*weighted_photon_flux)))
-        plt.text(300, 0.65, r'$J_{sc}$ = ' + str("%.2f" % J_pero) + ' mA/cm$^2$')
-        plt.text(800, 0.65, r'$J_{sc}$ = ' + str("%.2f" % J_Si) + ' mA/cm$^2$')
-        plt.xlabel('Wavelength (nm)')
-        plt.ylabel('Absorption & Reflection')
-        plt.ylim(0, 1.05)
-        plt.legend()
-        plt.grid()
+        # plt.clf() # Clear the figure so that graphs don't stack up.
+        # plt.plot(self.xpointsR, self.ypointsA_pero, label='Perovskite', color='r')
+        # plt.plot(self.xpointsR, self.ypointsA_Si, label='Si', color='k')
+        # plt.plot(self.xpointsR,self.ypointsR, label='R', color='b', linestyle='--')
+        # # plt.text(250,0.95, 'Mean R='+str("%.3f" % np.mean(self.ypointsR)))
+        # # weighted_photon_flux = AM15G.spectrum(wavelengths)[1] / np.max(AM15G.spectrum(wavelengths)[1])
+        # # plt.text(250,1.005, 'AM1.5G weighted mean R='+str("%.3f" % np.mean(self.ypointsR*weighted_photon_flux)))
+        # plt.text(300, 0.65, r'$J_{sc}$ = ' + str("%.2f" % J_pero) + ' mA/cm$^2$')
+        # plt.text(800, 0.65, r'$J_{sc}$ = ' + str("%.2f" % J_Si) + ' mA/cm$^2$')
+        # plt.xlabel('Wavelength (nm)')
+        # plt.ylabel('Absorption & Reflection')
+        # plt.ylim(0, 1.05)
+        # plt.legend()
+        # plt.grid()
+        #
+        # fig = plt.gcf()
+        # # convert graph into dtring buffer and then we convert 64 bit code into image
+        # # adapted from https://sukhbinder.wordpress.com/2022/04/13/rendering-matplotlib-graphs-in-django/
+        # buf = io.BytesIO()
+        # fig.savefig(buf, format='png',dpi=300)
+        # buf.seek(0)
+        # string = base64.b64encode(buf.read())
+        # uri = urllib.parse.quote(string)
+        # return uri
 
-        fig = plt.gcf()
-        # convert graph into dtring buffer and then we convert 64 bit code into image
-        # adapted from https://sukhbinder.wordpress.com/2022/04/13/rendering-matplotlib-graphs-in-django/
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png',dpi=300)
-        buf.seek(0)
-        string = base64.b64encode(buf.read())
-        uri = urllib.parse.quote(string)
-        return uri
+
+        return {
+            'wavelengths': self.xpointsR.tolist(),
+            'pero_absorption': self.ypointsA_pero.tolist(),
+            'si_absorption': self.ypointsA_Si.tolist(),
+            'reflection': self.ypointsR.tolist(),
+            'J_pero': float(J_pero),
+            'J_Si': float(J_Si)
+        }
 
     def downloadR(self, writer):
         # Save the Reflectance file

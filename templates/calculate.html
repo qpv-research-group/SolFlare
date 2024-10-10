@@ -6,100 +6,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Efficiency Limit Calculator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .logo-container img { height: 50px; }
-        #chart-container { position: relative; height: 400px; width: 100%; margin-top: 20px; }
-        .bandgap-line { position: absolute; top: 0; bottom: 0; width: 4px; cursor: ew-resize; }
-        .slider { width: 300px; margin: 10px 0; }
-        #bandgap-values { margin-top: 10px; }
-        .bandgap-value { display: inline-block; margin-right: 10px; padding: 5px; border-radius: 5px; }
-        #results {
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        #chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        #bandgap-line {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 4px;
+            background-color: rgb(255, 99, 132);
+            top: 0;
+            bottom: 20px;
+            cursor: ew-resize;
         }
-        #results h2 { margin-top: 0; }
-         .logo-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
         }
-
-        .logo-container img {
-            height: 50px;
+        #results {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 5px 20px;
+            align-items: baseline;
+        }
+        #results h2 {
+            grid-column: 1 / -1;
+            margin-bottom: 10px;
+        }
+        #results p {
+            margin: 0;
+        }
+        #results .value {
+            justify-self: start;
         }
     </style>
 </head>
 <body>
-<div class="logo-container">
-    <img src="{% static 'unswlogo.png' %}" alt="UNSW Logo">
-    <a href="http://www.solcore.solar"><img src="{% static 'solcore.png' %}" alt="Solcore Logo"></a>
-</div>
+    <div class="logo-container">
+        <img src="{% static 'unswlogo.png' %}" alt="UNSW Logo" height="50">
+        <a href="http://www.solcore.solar"><img src="{% static 'solcore.png' %}" alt="Solcore Logo" height="50"></a>
+    </div>
 
     <h1>Efficiency Limit Calculator</h1>
 
-    <p>The efficiency limit is calculated using the Shockley-Queisser model, as implemented in <a href="http://www.solcore.solar">Solcore</a>.
-    Select the number of junctions and drag the colored lines, or the slider above the plot, to change the bandgaps and see
-    how it affects the theoretical maximum efficiency of a multi-junction solar cell. The short-circuit current in each junction
-    is displayed below the bandgap.</p>
-
-    <form id="eg-form" method="post">
-        {% csrf_token %}
-        <label for="num_junctions">Number of Junctions:</label>
-        <input type="number" id="num_junctions" name="num_junctions" min="1" max="10" value="1">
-        <div id="bandgap-sliders"></div>
-    </form>
-
-    <div id="bandgap-values"></div>
+    <p>
+        The efficiency limit is calculated using the Shockley-Queisser model implemented in
+        <a href="http://www.solcore.solar">Solcore</a>. Drag the red line to change the bandgap
+        and see how it affects the theoretical maximum efficiency of a single-junction solar cell.
+    </p>
 
     <div id="chart-container">
-        <canvas id="spectrum-chart"></canvas>
-        <div id="results">
-            <h2>Results</h2>
-            <p>Efficiency: <span id="efficiency">-</span>%</p>
-            <p>V<sub>OC</sub>: <span id="voc">-</span> V</p>
-            <p>J<sub>SC</sub>: <span id="jsc">-</span> mA/cm<sup>2</sup></p>
-            <p>FF: <span id="ff">-</span>%</p>
-        </div>
+        <canvas id="solar-spectrum"></canvas>
+        <div id="bandgap-line"></div>
     </div>
 
-<script>
-    let chart;
-    let bandgapLines = [];
-const colors = ['#B10DC9', '#0074D9', '#2ECC40', '#FFDC00', '#FF851B', '#FF4136', '#01FF70', '#39CCCC', '#3D9970', '#85144b'];
+    <div id="bandgap-value">Bandgap: 1.00 eV</div>
 
-    function initializeChart(spectrumData) {
-        const ctx = document.getElementById('spectrum-chart').getContext('2d');
-        chart = new Chart(ctx, {
+    <div id="results">
+        <h2>Results</h2>
+        <p>Efficiency</p><p class="value"><span id="efficiency">-</span>%</p>
+        <p>V<sub>OC</sub></p><p class="value"><span id="voc">-</span> V</p>
+        <p>J<sub>SC</sub></p><p class="value"><span id="jsc">-</span> mA/cm<sup>2</sup></p>
+        <p>FF</p><p class="value"><span id="ff">-</span>%</p>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('solar-spectrum').getContext('2d');
+        const bandgapValueDisplay = document.getElementById('bandgap-value');
+        const bandgapLine = document.getElementById('bandgap-line');
+        const chartContainer = document.getElementById('chart-container');
+        const spectrumData = {{ spectrum_data|safe }};
+
+        let bandgapEnergy = 1.0;
+        const minEnergy = 0.3;
+        const maxEnergy = 4.2;
+
+        const chart = new Chart(ctx, {
             type: 'line',
             data: {
                 datasets: [{
-                    label: '',
+                    label: 'Solar Spectrum',
                     data: spectrumData,
                     borderColor: 'rgba(75, 192, 192, 0.8)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     fill: true,
-                    pointRadius: 0  // Remove points from the line
+                    tension: 0.1,
+                    tension: 0.1,
+                    pointRadius: 0
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                legend: {
-                    display: false // Hide the legend completely
-                }
-            },
                 scales: {
                     x: {
                         type: 'linear',
@@ -108,164 +119,100 @@ const colors = ['#B10DC9', '#0074D9', '#2ECC40', '#FFDC00', '#FF851B', '#FF4136'
                             display: true,
                             text: 'Energy (eV)'
                         },
-                        min: 0.25  // Start the x-axis at 0.25 eV
+                        min: minEnergy,
+                        max: maxEnergy
                     },
                     y: {
                         type: 'linear',
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'Photon Flux (m⁻² s⁻¹ eV⁻¹)'
-                        }
+                            text: 'Spectral Irradiance (W/m²/nm)'
+                        },
+                        min: 0
                     }
-                }
-            }
-        });
-    }
-
-    function updateBandgapLines() {
-        const numJunctions = parseInt($('#num_junctions').val());
-        const chartArea = chart.chartArea;
-        const xScale = chart.scales.x;
-
-        // Remove excess bandgap lines
-        $('.bandgap-line').slice(numJunctions).remove();
-
-        // Update or create bandgap lines
-        for (let i = 1; i <= numJunctions; i++) {
-            let egValue = parseFloat($(`#eg_value_${i}`).val()) || 1.0;
-            const xPos = xScale.getPixelForValue(egValue);
-            let line = $(`#bandgap-line-${i}`);
-
-            if (line.length === 0) {
-                line = $('<div>')
-                    .addClass('bandgap-line')
-                    .attr('id', `bandgap-line-${i}`)
-                    .appendTo('#chart-container');
-            }
-
-            line.css({
-                'left': `${xPos}px`,
-                'background-color': colors[i - 1],
-                'width': '4px'  // Increased line thickness
-            });
-
-            // Make the line draggable
-            if (!line.hasClass('ui-draggable')) {
-                line.draggable({
-                    axis: 'x',
-                    containment: '#chart-container',
-                    drag: function(event, ui) {
-                        const newEgValue = xScale.getValueForPixel(ui.position.left);
-                        updateBandgapValue(i, newEgValue, false);
-                    },
-                    stop: function() {
-                        const newEgValue = xScale.getValueForPixel($(this).position().left);
-                        updateBandgapValue(i, newEgValue, true);
-                        calculateEfficiency();
-                    }
-                });
-            }
-        }
-    }
-
-    function updateBandgapValue(index, value, updateSlider = true) {
-        const roundedValue = Math.round(value * 100) / 100;
-        $(`#eg_value_${index}`).val(roundedValue);
-        $(`#eg_value_${index}_display`).text(roundedValue.toFixed(2));
-        if (updateSlider) {
-            $(`#slider_${index}`).slider('value', roundedValue);
-        }
-    }
-
-function updateBandgapSliders() {
-    const numJunctions = parseInt($('#num_junctions').val());
-    const slidersContainer = $('#bandgap-sliders');
-    const valuesContainer = $('#bandgap-values');
-
-    // Remove excess sliders and value displays
-    slidersContainer.children('.slider').slice(numJunctions).remove();
-    valuesContainer.children('.bandgap-value').slice(numJunctions).remove();
-
-    for (let i = 1; i <= numJunctions; i++) {
-        const sliderId = `slider_${i}`;
-        const inputId = `eg_value_${i}`;
-        let sliderValue = $(`#${inputId}`);
-        let slider = $(`#${sliderId}`);
-        let valueDisplay = $(`#${inputId}_display`).parent();
-
-        if (sliderValue.length === 0) {
-            sliderValue = $(`<input type="hidden" id="${inputId}" name="${inputId}" value="1.0">`);
-            slidersContainer.append(sliderValue);
-        }
-
-        if (slider.length === 0) {
-            slider = $('<div>').addClass('slider').attr('id', sliderId);
-            slidersContainer.append(slider);
-        }
-
-        if (valueDisplay.length === 0) {
-            valueDisplay = $(`<div class="bandgap-value" style="background-color: ${colors[i - 1]}; color: white;">
-                Bandgap ${i}: <span id="${inputId}_display">1.00</span> eV
-                <br>J<sub>SC</sub>: <span id="jsc_junction_${i}">-</span> mA/cm<sup>2</sup>
-            </div>`);
-            valuesContainer.append(valueDisplay);
-        }
-
-        if (!slider.hasClass('ui-slider')) {
-            slider.slider({
-                min: 0.5,
-                max: 4,
-                step: 0.01,
-                value: parseFloat(sliderValue.val()) || 1.0,
-                slide: function(event, ui) {
-                    updateBandgapValue(i, ui.value, false);
                 },
-                change: function(event, ui) {
-                    if (event.originalEvent) {
-                        updateBandgapValue(i, ui.value, true);
-                        updateBandgapLines();
-                        calculateEfficiency();
-                    }
-                }
-            });
-        }
-    }
-}
-
-    function calculateEfficiency() {
-        const formData = $('#eg-form').serialize();
-        $.ajax({
-            url: '{% url "calculate_efficiency" %}',
-            type: 'POST',
-            data: formData,
-            success: function(response) {
-                $('#efficiency').text(response.efficiency);
-                $('#voc').text(response.voc);
-                $('#jsc').text(response.jsc);
-                $('#ff').text(response.ff);
-
-                // Update jsc per junction
-                response.jsc_per_junction.forEach((jsc, index) => {
-                    $(`#jsc_junction_${index + 1}`).text(jsc.toFixed(1));
-                });
+                animation: {
+                    duration: 0
+                },
+                maintainAspectRatio: false
             }
         });
-    }
 
-    $(document).ready(function() {
-        initializeChart({{ spectrum_data|safe }});
+        function updateBandgapLine(energy, calculateEfficiencyFlag = true) {
+            const xScale = chart.scales.x;
+            const pixelX = xScale.getPixelForValue(energy);
+            bandgapLine.style.left = `${pixelX}px`;
+            bandgapValueDisplay.textContent = `Bandgap: ${energy.toFixed(2)} eV`;
+            if (calculateEfficiencyFlag) {
+                calculateEfficiency(energy);
+            }
+        }
 
-        $('#num_junctions').on('change', function() {
-            updateBandgapSliders();
-            updateBandgapLines();
-            calculateEfficiency();
-        });
+        function energyFromPixel(pixelX) {
+            const xScale = chart.scales.x;
+            return xScale.getValueForPixel(pixelX);
+        }
 
-        updateBandgapSliders();
-        updateBandgapLines();
-        calculateEfficiency();
-    });
-</script>
+         let isDragging = false;
+
+        bandgapLine.addEventListener('mousedown', startDragging);
+        chartContainer.addEventListener('mousedown', startDragging);
+
+        function startDragging(e) {
+            isDragging = true;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            e.preventDefault();
+        }
+
+        function onMouseMove(e) {
+            if (!isDragging) return;
+            const chartArea = chart.chartArea;
+            const rect = ctx.canvas.getBoundingClientRect();
+            const pixelX = e.clientX - rect.left;
+            if (pixelX >= chartArea.left && pixelX <= chartArea.right) {
+                let energy = energyFromPixel(pixelX);
+                energy = Math.max(minEnergy, Math.min(maxEnergy, energy));
+                bandgapEnergy = energy;
+                updateBandgapLine(energy, false);  // Don't calculate efficiency while dragging
+            }
+            e.preventDefault();
+        }
+
+        function onMouseUp(e) {
+            if (isDragging) {
+                isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                calculateEfficiency(bandgapEnergy);  // Calculate efficiency when dragging stops
+            }
+            e.preventDefault();
+        }
+
+        function calculateEfficiency(energy) {
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ eg_value: energy })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('efficiency').textContent = data.efficiency.toFixed(2);
+                document.getElementById('voc').textContent = data.voc.toFixed(2);
+                document.getElementById('jsc').textContent = data.jsc.toFixed(2);
+                document.getElementById('ff').textContent = data.ff.toFixed(2);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+            // Initialize bandgap line
+        updateBandgapLine(bandgapEnergy);
+    </script>
 </body>
 </html>
