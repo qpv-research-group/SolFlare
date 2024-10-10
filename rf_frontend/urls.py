@@ -24,5 +24,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("", include("siliconabsorption.urls"), name="siliconabsorption"),
     path('efficiency_limit/', include('efficiency_limit.urls')),
-
+    path('perovskite_silicon/', include('perovskite_silicon.urls')),
               ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

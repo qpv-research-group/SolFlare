@@ -1,8 +1,10 @@
 import base64,urllib
 import io
 
-from numba import config
-config.DISABLE_JIT = True
+from django.db import models
+
+# from numba import config
+# config.DISABLE_JIT = True
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,22 +29,23 @@ class siliconCalculator:
         self.ARC_width = 80e-9
         self.shading = 2
         self.texture = False
-        self.alrear = False
+        self.agrear = False
         self.xpointsR = np.empty(0)
         self.ypointsA = np.empty(0)
         self.xpointsG = np.empty(0)
         self.ypointsG = np.empty(0)
 
 # A method that sets parameters according to the form input
-    def setvalues(self,Si_width,shading,arcthickness,texture,alrear):
+    def setvalues(self,Si_width,shading,arcthickness,texture,agrear):
         self.Si_width = Si_width      # Si thickness is passed in units of [m] from views.py
         self.shading = shading        # Shading is passed as a fraction from views.py
         self.ARC_width = arcthickness   # ARC thickness is passed in units of [m] from views.py
         self.texture = texture
-        self.alrear = alrear
+        self.agrear = agrear
 
     def getgraph(self):
-        n_rays = 200
+
+        n_rays = 100
         profile_spacing = 1e-7
 
         wavelengths = si(np.linspace(280, 1180, 50), 'nm')
@@ -54,17 +57,16 @@ class siliconCalculator:
         Si = material("Si")()
         SiN = material("Si3N4")()
         Air = material("Air")()
-        Al = material("Al")()
+        Ag = material("Ag")()
 
         options = default_options()
         options.pol = 'u'
         options.wavelength = wavelengths
         options.coherent = False
         options.depth_spacing = profile_spacing
-        options.parallel = False
 
-        if self.alrear:
-            transmission = Al
+        if self.agrear:
+            transmission = Ag
 
         else:
             transmission = Air
@@ -74,22 +76,18 @@ class siliconCalculator:
         if self.texture == False: # Is this a planar or textured calculation?
                 structure = tmm_structure(
                     [Layer(width=self.ARC_width, material=SiN)] + [Layer(width=self.Si_width, material=Si)],
-                    incidence=Air, transmission=Al)
+                    incidence=Air, transmission=transmission)
                 options.coherency_list = ['c', 'i']
 
         else :  # In the case of a textured surface setup some additional variables
             # Texture parameters
-            front_texture_ARC = regular_pyramids(elevation_angle=54, upright=True,
+            front_texture_ARC = regular_pyramids(elevation_angle=55, upright=True,
                                                  interface_layers=[Layer(self.ARC_width, SiN)],
-                                                 analytical=True, phong=True,
-                                                 phong_options=[25, True])
-            rear_texture = regular_pyramids(elevation_angle=54, upright=False,
-                                            phong=True,
-                                            phong_options=[25, True]
-                                            )
+                                                 analytical=True)
+            rear_texture = regular_pyramids(elevation_angle=54, upright=False)
             # Simulation options
-            options.nx = 10
-            options.ny = 10
+            options.nx = 20
+            options.ny = 20
             options.n_rays = n_rays
             options.bulk_profile = True
             options.depth_spacing_bulk = profile_spacing
@@ -174,6 +172,7 @@ class siliconCalculator:
         string = base64.b64encode(buf.read())
         uri = urllib.parse.quote(string)
         return uri
+
     def downloadR(self, writer):
         # Save the Reflectance file
         # Iterate through xpoints and ypoints and add to csv file

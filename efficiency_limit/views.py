@@ -1,14 +1,13 @@
 import numpy as np
 from django.shortcuts import render
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from solcore.light_source import LightSource
 from solcore.solar_cell import SolarCell
 from solcore.solar_cell_solver import solar_cell_solver
 from solcore.structure import Junction
 from solcore.state import State
 
-@csrf_exempt
+#@csrf_exempt
 def calculate_efficiency(request):
     # Generate solar spectrum data
     wl = np.linspace(280, 4400, 200) * 1e-9
