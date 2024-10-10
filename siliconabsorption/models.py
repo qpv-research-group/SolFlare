@@ -97,14 +97,17 @@ class siliconCalculator:
             options.coherency_list = ['c', 'i']
             options.maximum_passes = 20
 
-            structure = rt_structure(textures=[front_texture_ARC, rear_texture],
-                            materials=[Si],
-                            widths=[self.Si_width],
-                            incidence=Air,
-                            transmission=transmission,
-                            use_TMM=True,
-                            options=options,
-                            save_location='current')
+            structure = rt_structure(
+                textures=[front_texture_ARC, rear_texture],
+                materials=[Si],
+                widths=[self.Si_width],
+                incidence=Air,
+                transmission=transmission,
+                use_TMM=True,
+                options=options,
+                save_location='current',
+                overwrite=True,
+            )
 
 
 # Perform the calculation
