@@ -1,0 +1,220 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Perovskite/Si Absorption Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        input[type="number"] { max-width: 6em; }
+        .form-container { margin-bottom: 20px; }
+        .form-container label { white-space: nowrap; }
+        .form-container td { padding: 5px 10px 5px 0; }
+        #svg-container { max-width: 200px; margin: auto; }
+        #resultsTable {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        #resultsTable th, #resultsTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #resultsTable th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body class="container-fluid" style="padding: 20px">
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <img src="{% static 'unswlogo.png' %}" height="50" alt="UNSW Logo">
+    </div>
+    <div class="col-md-4 text-center">
+        <a href="http://rayflare.readthedocs.io"><img src="{% static 'rayflare_logo.svg' %}" height="60" alt="RayFlare Logo"></a>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="http://www.solcore.solar"><img src="{% static 'solcore.png' %}" height="50" alt="Solcore Logo"></a>
+    </div>
+</div>
+
+<h1>Perovskite/Si Absorption Calculator</h1>
+
+<p>
+    The absorption in a simplified perovskite/silicon tandem stack is calculated using the <a href="http://rayflare.readthedocs.io">RayFlare</a> Python package.
+    The stack has been simplified to consist of only three layers: an MgF<sub>2</sub> anti-reflection coating, a perovskite absorber, and a silicon absorber.
+    You can also choose whether to include a silver (Ag) back reflector. Each of the interfaces (ARC/perovskite front surface, perovskite/silicon interface,
+    and the rear silicon surface) can be textured with pyramids with an opening angle of 54°. The absorption in each layer, and reflection and transmission losses,
+    are calculated as a function of wavelength which are integrated with the AM1.5G spectrum to calculate the maximum possible currents in each layer.
+</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="POST">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 form-container">
+                    <table>
+                        {{ form.as_table }}
+                    </table>
+                </div>
+
+                <div class="col-md-6 form-container">
+                    <table>
+                        {{ form_texture.as_table }}
+                    </table>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <button type="submit" name="calculate" class="btn btn-primary">Calculate</button>
+                    {% comment %}
+                    <button type="submit" name="downloadR" class="btn btn-secondary">Download Reflectance</button>
+                    <button type="submit" name="downloadG" class="btn btn-secondary">Download Generation</button>
+                    {% endcomment %}
+                </div>
+            </div>
+        </form>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div id="svg-container">
+                    {{ svg_content|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <canvas id="absorptionChart"></canvas>
+
+        <h3>Maximum possible currents (mA/cm²)</h3>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Calculation</th>
+                    <th>J<sub>pero</sub></th>
+                    <th>J<sub>Si</sub></th>
+                    <th>J<sub>R</sub> (loss)</th>
+                    <th>J<sub>T</sub> (loss)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr>
+                    <td>{{ forloop.revcounter }}</td>
+                    <td>{{ result.J_pero|floatformat:2 }}</td>
+                    <td>{{ result.J_Si|floatformat:2 }}</td>
+                    <td>{{ result.J_R|floatformat:2 }}</td>
+                    <td>{{ result.J_T|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var graphData = {{ graph_data|safe }};
+
+        if (graphData) {
+            var ctx = document.getElementById('absorptionChart').getContext('2d');
+
+            // Calculate min and max for x-axis
+            var minWavelength = Math.min(...graphData.wavelengths);
+            var maxWavelength = Math.max(...graphData.wavelengths);
+
+            var customTicks = [];
+                var start = Math.ceil(minWavelength / 50) * 50;
+                var end = Math.floor(maxWavelength / 50) * 50;
+                for (var i = start; i <= end; i += 50) {
+                    customTicks.push(i);
+                }
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: graphData.wavelengths,
+                    datasets: [{
+                        label: 'Perovskite',
+                        data: graphData.wavelengths.map((x, i) => ({x: x, y: graphData.pero_absorption[i]})),
+                        borderColor: 'rgb(255,99,132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.35)',
+                        fill: true,
+                        pointRadius: 0, // Add this line
+                        pointHoverRadius: 0, // Add this line
+                    }, {
+                        label: 'Silicon',
+                        data: graphData.wavelengths.map((x, i) => ({x: x, y: graphData.si_absorption[i]})),
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.35)',
+                        fill: true,
+                        pointRadius: 0, // Add this line
+                        pointHoverRadius: 0, // Add this line
+                    }, {
+                        label: 'Reflection',
+                        data: graphData.wavelengths.map((x, i) => ({x: x, y: graphData.reflection[i]})),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.35)',
+                        fill: true,
+                        pointRadius: 0, // Add this line
+                        pointHoverRadius: 0, // Add this line
+                    }, {
+                        label: 'Transmission',
+                        data: graphData.wavelengths.map((x, i) => ({x: x, y: graphData.transmission[i]})),
+                        borderColor: 'rgb(203,167,64)',
+                        backgroundColor: 'rgba(203,167,64, 0.35)',
+                        fill: true,
+                        pointRadius: 0, // Add this line
+                        pointHoverRadius: 0, // Add this line
+                    }]
+                },
+                options: {
+                     plugins: {
+            legend: {
+                labels: {
+                    // This more specific font property overrides the global property
+                    font: {
+                        size: 14
+                    }
+                }
+            }
+        },
+                    responsive: true,
+                    scales: {
+                             x: {
+                                type: 'linear',
+                                title: {
+                                    display: true,
+                                    text: 'Wavelength (nm)',
+                                    font: {size: 16},
+                                },
+                                min: minWavelength,
+                                max: maxWavelength,
+                                afterBuildTicks: axis => axis.ticks = customTicks.map(v => ({ value: v }))
+                            },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Absorption / Reflection',
+                                font: {size: 16},
+                            },
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
