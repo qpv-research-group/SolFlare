@@ -19,10 +19,12 @@ from django.urls import path
 from django.urls import include
 from django.conf.urls.static import static
 from django.conf import settings
+from home.views import landing_page
 
 urlpatterns = [
+    path('', landing_page, name='landing_page'),
     path('admin/', admin.site.urls),
-    path("", include("siliconabsorption.urls"), name="siliconabsorption"),
+    path('siliconabsorption/', include('siliconabsorption.urls')),
     path('efficiency_limit/', include('efficiency_limit.urls')),
     path('perovskite_silicon/', include('perovskite_silicon.urls')),
               ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
