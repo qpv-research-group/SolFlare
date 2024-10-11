@@ -57,7 +57,7 @@ class siliconCalculator:
 
         Si = material("Si")()
         Air = material("Air")()
-        Ag = material("Ag")()
+        Ag = material("Ag_Jiang")()
         pero = material("Perovskite_CsBr_1p6eV")()
         MgF2 = material("MgF2_RdeM")()
 
