@@ -1,13 +1,8 @@
-import base64,urllib
-import io
-
-from django.db import models
-
 from numba import config
 config.DISABLE_JIT = True
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 from solcore import material, si
 from solcore.structure import Layer

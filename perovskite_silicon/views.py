@@ -1,7 +1,7 @@
-import seaborn as sns
+# import seaborn as sns
 import numpy as np
 from django.utils.safestring import mark_safe
-from django.core.cache import cache
+# from django.core.cache import cache
 
 from numba import config
 config.DISABLE_JIT = True
@@ -57,7 +57,7 @@ def solar_cell_view(request):
     texture_form = textureParameters(request.POST or None)
 
     # Retrieve previous results from cache
-    results = cache.get('calculation_results', [])
+    results = request.session.get('calculation_results', [])
 
     graph_data = None
     front_text = False
@@ -96,7 +96,9 @@ def solar_cell_view(request):
             results = results[:5]
 
             # Update cache with new results
-            cache.set('calculation_results', results)
+            request.session['calculation_results'] = results
+            # Ensure the session is saved
+            request.session.modified = True
 
     layers = [
         {"height": 10, "textured": False},
