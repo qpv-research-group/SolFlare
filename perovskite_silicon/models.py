@@ -208,10 +208,12 @@ class siliconCalculator:
 
         # Store reflectance data in an instance variable ypointsR incase it needs to be saved later
         self.ypointsR = calculation_result['R']
+        self.ypointsT = calculation_result['T']
 
         J_pero = np.trapz(self.ypointsA_pero * AM15G.spectrum(wavelengths)[1] * q, wavelengths)/10
         J_Si = np.trapz(self.ypointsA_Si * AM15G.spectrum(wavelengths)[1] * q, wavelengths)/10
-
+        J_R = np.trapz(self.ypointsR * AM15G.spectrum(wavelengths)[1] * q, wavelengths)/10
+        J_T = np.trapz(self.ypointsT * AM15G.spectrum(wavelengths)[1] * q, wavelengths)/10
         # calculate cumulative generation
         # Plot the graph
         # plt.clf() # Clear the figure so that graphs don't stack up.
@@ -245,8 +247,11 @@ class siliconCalculator:
             'pero_absorption': self.ypointsA_pero.tolist(),
             'si_absorption': self.ypointsA_Si.tolist(),
             'reflection': self.ypointsR.tolist(),
+            'transmission': self.ypointsT.tolist(),
             'J_pero': float(J_pero),
-            'J_Si': float(J_Si)
+            'J_Si': float(J_Si),
+            'J_R': float(J_R),
+            'J_T': float(J_T),
         }
 
     def downloadR(self, writer):

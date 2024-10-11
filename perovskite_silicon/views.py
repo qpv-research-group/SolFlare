@@ -1,34 +1,24 @@
-from django.shortcuts import render
 import seaborn as sns
+import numpy as np
 from django.utils.safestring import mark_safe
-from django.http import JsonResponse
+from django.core.cache import cache
 
 from numba import config
 config.DISABLE_JIT = True
-
-import numpy as np
-from solcore.light_source import LightSource
-
-from rayflare.textures import regular_pyramids
-import matplotlib.pyplot as plt
-
-from solcore import material
-from solcore.structure import Layer
-from rayflare.options import default_options
-from rayflare.ray_tracing import rt_structure
-from time import time
 
 from .forms import layerParameters, textureParameters
 from .models import siliconCalculator
 
 graphobj = siliconCalculator()
 
-def generate_svg(front_text, layers, agrear):
-    base_colors = sns.cubehelix_palette(len(layers) - 2, start=2.2, rot=0.04, dark=0.2, light=0.8)
-    colors = ["rgba(255, 255, 255, 1.0)"] + [f"rgba({int(r * 255)},{int(g * 255)},{int(b * 255)}, 1.0)" for r, g, b in base_colors]
+def generate_svg(layers, agrear):
+    # base_colors = sns.cubehelix_palette(len(layers) - 2, start=2.3, rot=0.02, dark=0.2, light=0.8)
+    base_colors = np.array([[255,179,194], [160,208,246], [171,223,223], [229,211,162]])
+    base_colors = base_colors[:(len(layers)-2)]
+    colors = ["rgba(255, 255, 255, 1.0)"] + [f"rgba({int(r)},{int(g)},{int(b)}, 1.0)" for r, g, b in base_colors]
 
     if agrear:
-        colors.append("rgba(100, 100, 100, 1.0)")
+        colors.append("rgba(180, 180, 180, 1.0)")
 
     else:
         colors.append("rgba(255, 255, 255, 1.0)")
@@ -60,13 +50,20 @@ def generate_svg(front_text, layers, agrear):
 from django.shortcuts import render
 import json
 
-# ... (other imports remain the same)
-
 def solar_cell_view(request):
     global graphobj
 
     layer_form = layerParameters(request.POST or None)
     texture_form = textureParameters(request.POST or None)
+
+    # Retrieve previous results from cache
+    results = cache.get('calculation_results', [])
+
+    graph_data = None
+    front_text = False
+    middle_text = False
+    rear_text = False
+    agrear = False
 
     if request.method == 'POST' and 'calculate' in request.POST:
         if layer_form.is_valid() and texture_form.is_valid():
@@ -83,16 +80,23 @@ def solar_cell_view(request):
             graphobj.setvalues(silicon_thickness * 1e-6, pero_thickness * 1e-9, arc_thickness * 1e-9,
                                agrear, front_text, middle_text, rear_text)
             graph_data = graphobj.getgraph()
-        else:
-            graph_data = None
-    else:
-        layer_form = layerParameters()
-        texture_form = textureParameters()
-        front_text = False
-        middle_text = False
-        rear_text = False
-        graph_data = None
-        agrear = False
+
+            # Add new result
+            new_result = {
+                'J_pero': graph_data['J_pero'],
+                'J_Si': graph_data['J_Si'],
+                'J_R': graph_data['J_R'],
+                'J_T': graph_data['J_T'],
+            }
+
+            # Insert new result at the beginning
+            results.insert(0, new_result)
+
+            # Keep only the last 5 results
+            results = results[:5]
+
+            # Update cache with new results
+            cache.set('calculation_results', results)
 
     layers = [
         {"height": 10, "textured": False},
@@ -101,12 +105,13 @@ def solar_cell_view(request):
         {"height": 30, "textured": rear_text},
     ]
 
-    svg_content = generate_svg(front_text, layers, agrear)
+    svg_content = generate_svg(layers, agrear)
 
     context = {
         'form': layer_form,
         'form_texture': texture_form,
         'svg_content': mark_safe(svg_content),
+        'results': results,
     }
 
     if graph_data:
