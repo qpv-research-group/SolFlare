@@ -5,7 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="77371205-f730-411b-9508-5f1194777803" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitgnore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/calculate.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/calculate.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,7 +43,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "multiple__junctions",
+    "git-widget-placeholder": "pero__si",
     "last_opened_file_path": "/Users/z3533914/develop/SolFlare/perovskite_silicon",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -95,6 +97,9 @@
       <module name="SolFlare" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
       <option name="IS_MODULE_SDK" value="false" />
@@ -114,6 +119,9 @@
       <module name="SolFlare" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
       <option name="IS_MODULE_SDK" value="false" />
@@ -133,6 +141,9 @@
       <module name="SolFlare" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/perovskite_silicon" />
       <option name="IS_MODULE_SDK" value="true" />
@@ -224,14 +235,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/templates/calculate.html</url>
-          <line>77</line>
-          <properties lambdaOrdinal="-1" />
+          <line>62</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/templates/calculate.html</url>
-          <line>168</line>
-          <properties lambdaOrdinal="-1" />
+          <line>202</line>
           <option name="timeStamp" value="8" />
         </line-breakpoint>
       </breakpoints>
@@ -240,6 +249,7 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/SolFlare$manage.coverage" NAME="Django server Coverage Results" MODIFIED="1728618840920" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SolFlare$views.coverage" NAME="views Coverage Results" MODIFIED="1728601823315" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/perovskite_silicon" />
+    <SUITE FILE_PATH="coverage/SolFlare$Django_server.coverage" NAME="Django server Coverage Results" MODIFIED="1728619191714" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SolFlare$manage__1_.coverage" NAME="manage (1) Coverage Results" MODIFIED="1728427742935" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
