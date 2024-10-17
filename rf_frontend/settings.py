@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-y+8c%eovr_bv-6iqizyltfn^4%1sms=yx7uqwz3g8a&6r8!p2s
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+CSRF_TRUSTED_ORIGINS = ['https://*.solcore.live']
 
 # Application definition
 
