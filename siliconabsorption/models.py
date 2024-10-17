@@ -61,7 +61,7 @@ class siliconCalculator:
         options.wavelength = wavelengths
         options.coherent = False
         options.depth_spacing = profile_spacing
-        options.parallel = False
+        options.parallel = True
 
         if self.alrear:
             transmission = Al
