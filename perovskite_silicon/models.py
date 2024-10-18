@@ -77,7 +77,7 @@ class siliconCalculator:
         else:
             calc_type = 'RT_threesurfaces'
 
-        print(calc_type)
+        # print(calc_type)
 
         if calc_type == 'TMM': # Is this a planar or textured calculation?
                 structure = tmm_structure(
@@ -99,7 +99,9 @@ class siliconCalculator:
                                                          Layer(self.ARC_width, MgF2),
                                                          Layer(self.pero_width, pero)
                                                      ],
-                                                     analytical=True)
+                                                     analytical=True,
+                                                     phong=True,
+                                                     )
 
             else:
                 front_texture_ARC = planar_surface(interface_layers=[
@@ -121,7 +123,7 @@ class siliconCalculator:
             options.n_rays = n_rays
             options.depth_spacing_bulk = 50e-6
             options.project_name = "Si_optics"
-            options.maximum_passes = 30
+            options.maximum_passes = 25
 
             structure = rt_structure(textures=[front_texture_ARC, rear_texture],
                             materials=[Si],

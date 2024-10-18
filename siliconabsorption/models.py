@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from solcore import material, si
 from solcore.structure import Layer
 from solcore.light_source import LightSource
-from solcore.constants import q
 
 from rayflare.ray_tracing import rt_structure
 from rayflare.transfer_matrix_method import tmm_structure
@@ -61,7 +60,7 @@ class siliconCalculator:
         options.wavelength = wavelengths
         options.coherent = False
         options.depth_spacing = profile_spacing
-        options.parallel = True
+        options.parallel = False
 
         if self.alrear:
             transmission = Al
@@ -69,7 +68,7 @@ class siliconCalculator:
         else:
             transmission = Air
 
-# Setup different structures depending on the form input.
+        # Setup different structures depending on the form input.
 
         if self.texture == False: # Is this a planar or textured calculation?
                 structure = tmm_structure(
@@ -77,7 +76,8 @@ class siliconCalculator:
                     incidence=Air, transmission=transmission)
                 options.coherency_list = ['c', 'i']
 
-        else :  # In the case of a textured surface setup some additional variables
+        else :
+            # In the case of a textured surface setup some additional variables
             # Texture parameters
             front_texture_ARC = regular_pyramids(elevation_angle=54, upright=True,
                                                  interface_layers=[Layer(self.ARC_width, SiN)],
@@ -109,8 +109,8 @@ class siliconCalculator:
                 overwrite=True,
             )
 
+        # Perform the calculation
 
-# Perform the calculation
         start = time()
         calculation_result = structure.calculate(options)
         print("calculation time:", time() - start)
@@ -131,7 +131,7 @@ class siliconCalculator:
 
         if self.texture == True:
             absorption_profile = calculation_result['profile'] * 1e6  # array with dimensions (n_wavelengths, n_depths)
-        # units are m^-1
+            # units are m^-1
 
         else:
             exclude_points = np.ceil(self.ARC_width / profile_spacing)  # figure out how many points to exclude for the ARC
