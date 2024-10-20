@@ -1,0 +1,434 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Efficiency Limit Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <style>
+
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .logo-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .logo-container img {
+            height: 50px;
+        }
+        #controls-container { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        #bandgap-controls { flex: 2; }
+        #external-voltage-container { flex: 1; margin-left: 20px; }
+        .slider { width: 300px; margin: 10px 0; }
+        #bandgap-values { margin-top: 10px; }
+        .bandgap-value { display: inline-block; margin-right: 10px; padding: 5px; border-radius: 5px; }
+        #chart-and-results-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        #chart-container {
+            flex: 4;
+            height: 400px;
+        }
+
+        #results {
+            flex: 1;
+            margin-left: 20px;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+          #external_voltage {
+            width: 70px;
+            height: 30px;
+            font-size: 16px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Styling for Webkit browsers (Chrome, Safari) */
+        #external_voltage::-webkit-inner-spin-button,
+        #external_voltage::-webkit-outer-spin-button {
+            opacity: 1;
+            height: 30px;
+        }
+
+        /* Styling for Firefox */
+        #external_voltage {
+            -moz-appearance: textfield;
+        }
+
+        #external_voltage::-moz-number-spin-box {
+            height: 30px;
+        }
+
+        #external-voltage-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #external_voltage_slider {
+            width: 300px;
+            margin-top: 10px;
+        }
+
+        footer {
+            margin-top: 40px;
+            flex-shrink: 0;
+            background-color: #f5f5f5;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 14px;
+            border-top: 1px solid #e0e0e0;
+            width: 100%;
+        }
+
+        footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="logo-container">
+    <img src="{% static 'unswlogo.png' %}" alt="UNSW Logo">
+    <a href="http://www.solcore.solar"><img src="{% static 'solcore.png' %}" alt="Solcore Logo"></a>
+</div>
+
+    <h1>Voltage bias across a multi-junction device</h1>
+
+    <p>The I-V curve of a solar cell is calculated using the Shockley-Queisser model, as implemented in <a href="http://www.solcore.solar">Solcore</a>.
+    Drag the sliders above the plot to change the bandgaps and the externally applied voltage, and see
+    how it affects the efficiency of the cell, and the internal biasing of the junctions.</p>
+
+    <form id="eg-form" method="post">
+        {% csrf_token %}
+        <input type="hidden" id="num_junctions" name="num_junctions" value="2">
+        <div id="controls-container">
+            <div id="bandgap-controls">
+                <label for="bandgap-controls">Sub-cell bandgaps:</label>
+                <div id="bandgap-sliders"></div>
+            </div>
+            <div id="external-voltage-container">
+                <label for="external_voltage">External bias (V):</label>
+    <input type="number" id="external_voltage" name="external_voltage" min="0" max="3" step="0.01" value="0">
+    <div id="external_voltage_slider"></div>
+            </div>
+        </div>
+    </form>
+
+    <div id="bandgap-values"></div>
+
+    <div id="chart-and-results-container">
+        <div id="chart-container">
+            <canvas id="iv-chart"></canvas>
+        </div>
+        <div id="results">
+            <h2>Results</h2>
+            <p>Efficiency: <span id="efficiency">-</span>%</p>
+            <p>V<sub>OC</sub>: <span id="voc">-</span> V</p>
+            <p>J<sub>SC</sub>: <span id="jsc">-</span> mA/cm<sup>2</sup></p>
+            <p>FF: <span id="ff">-</span>%</p>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        const colors = ['#B10DC9', '#0074D9', '#FF4136'];
+
+function initializeChart() {
+    const ctx = document.getElementById('iv-chart').getContext('2d');
+    chart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Top Cell',
+                    borderColor: colors[0],
+                    backgroundColor: colors[0],
+                    data: [],
+                    showLine: true,
+                    pointRadius: 0,
+                    legendType: 'line'
+                },
+                {
+                    label: 'Bottom Cell',
+                    borderColor: colors[1],
+                    backgroundColor: colors[1],
+                    data: [],
+                    showLine: true,
+                    pointRadius: 0,
+                    legendType: 'line'
+                },
+                {
+                    label: 'Overall Cell',
+                    borderColor: colors[2],
+                    backgroundColor: colors[2],
+                    data: [],
+                    showLine: true,
+                    pointRadius: 0,
+                    legendType: 'line'
+                },
+                {
+                    label: 'External Bias',
+                    borderColor: 'rgba(0, 0, 0, 0.5)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    borderDash: [5, 5],
+                    data: [],
+                    showLine: true,
+                    pointRadius: 3,
+                    legendType: 'line'
+                },
+                {
+                    label: 'Top Junction',
+                    borderColor: 'red',
+                    backgroundColor: 'red',
+                    data: [],
+                    showLine: false,
+                    pointRadius: 6,
+                    pointStyle: 'triangle',
+                    legendType: 'point'
+                },
+                {
+                    label: 'Bottom Junction',
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
+                    data: [],
+                    showLine: false,
+                    pointRadius: 6,
+                    pointStyle: 'rect',
+                    legendType: 'point'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: 'Voltage (V)'
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Current (mA/cm²)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        generateLabels: function(chart) {
+                            const datasets = chart.data.datasets;
+                            return datasets.map((dataset, i) => {
+                                const isLine = dataset.legendType === 'line';
+                                return {
+                                    text: dataset.label,
+                                    fillStyle: isLine ? 'transparent' : dataset.backgroundColor,
+                                    strokeStyle: dataset.borderColor,
+                                    lineWidth: isLine ? 3 : dataset.borderWidth, // Increase line width for lines
+                                    hidden: !chart.isDatasetVisible(i),
+                                    index: i,
+                                    pointStyle: isLine ? 'line' : dataset.pointStyle || 'circle',
+                                    lineDash: dataset.borderDash,
+                                    datasetIndex: i,
+                                    boxWidth: isLine ? 40 : 10, // Wider box for lines
+                                    boxHeight: isLine ? 3 : 10 // Thinner box height for lines
+                                };
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChart(data) {
+    chart.data.datasets[0].data = data.internal_bias.map((v, i) => ({x: v, y: data.top_current[i]}));
+    chart.data.datasets[1].data = data.internal_bias.map((v, i) => ({x: v, y: data.bottom_current[i]}));
+    chart.data.datasets[2].data = data.overall_V.map((v, i) => ({x: v, y: data.overall_I[i]}));
+
+    // Set y-axis limits
+    const jmax = parseFloat(data.highest_I);
+    const yMax = jmax * 1.1; // 10% above Jsc
+
+    // Set x-axis limits
+    const voc = parseFloat(data.voc);
+    const xMin = -2;
+    const xMax = voc * 1.1; // 10% above Voc
+
+    chart.options.scales.y.min = -10;
+    chart.options.scales.y.max = yMax;
+    chart.options.scales.x.min = xMin;
+    chart.options.scales.x.max = xMax;
+
+        // Add external bias line
+    const externalVoltage = parseFloat(data.ext_bias_actual);
+    const externalCurrent = parseFloat(data.ext_bias_current);
+
+    chart.data.datasets[3].data = [
+        {x: externalVoltage, y: -10},
+        {x: externalVoltage, y: externalCurrent},
+        {x: xMin, y: externalCurrent}
+    ];
+
+    chart.data.datasets[4].data = [{x: data.top_junction_voltage, y: data.ext_bias_current}];
+    chart.data.datasets[5].data = [{x: data.bottom_junction_voltage, y: data.ext_bias_current}];
+
+
+    chart.update();
+}
+
+function updateBandgapSliders() {
+    const slidersContainer = $('#bandgap-sliders');
+    const valuesContainer = $('#bandgap-values');
+
+    // Define default values for each bandgap
+    const defaultValues = [1.8, 1.2]; // Example: 1.8 eV for top cell, 1.2 eV for bottom cell
+
+    for (let i = 1; i <= 2; i++) {
+        const sliderId = `slider_${i}`;
+        const inputId = `eg_value_${i}`;
+        let slider = $(`#${sliderId}`);
+        let valueDisplay = $(`#${inputId}_display`).parent();
+
+        if (slider.length === 0) {
+            slider = $('<div>').addClass('slider').attr('id', sliderId);
+            slidersContainer.append(slider);
+        }
+
+        if (valueDisplay.length === 0) {
+            valueDisplay = $(`<div class="bandgap-value" style="background-color: ${colors[i - 1]}; color: white;">
+                Bandgap ${i}: <span id="${inputId}_display">${defaultValues[i-1].toFixed(2)}</span> eV
+                <br>J<sub>SC</sub>: <span id="jsc_junction_${i}">-</span> mA/cm<sup>2</sup>
+            </div>`);
+            valuesContainer.append(valueDisplay);
+        }
+
+        if (!slider.hasClass('ui-slider')) {
+            slider.slider({
+                min: 0.5,
+                max: 4,
+                step: 0.01,
+                value: defaultValues[i-1],
+                slide: function(event, ui) {
+                    $(`#${inputId}_display`).text(ui.value.toFixed(2));
+                },
+                change: function(event, ui) {
+                    if (event.originalEvent) {
+                        calculateEfficiency();
+                    }
+                }
+            });
+        }
+    }
+}
+
+function initializeExternalVoltageSlider() {
+    const slider = $('#external_voltage_slider');
+    const input = $('#external_voltage');
+
+    slider.slider({
+        min: 0,
+        max: 3,
+        step: 0.01,
+        value: 0,
+        slide: function(event, ui) {
+            input.val(ui.value.toFixed(2));
+        },
+        change: function(event, ui) {
+            input.val(ui.value.toFixed(2));
+            calculateEfficiency();
+        }
+    });
+
+    input.on('input', function() {
+        const value = parseFloat($(this).val());
+        if (!isNaN(value) && value >= 0 && value <= 3) {
+            slider.slider('value', value);
+        }
+    });
+
+    // Initialize the input value
+    input.val(slider.slider('value').toFixed(2));
+}
+
+
+function calculateEfficiency() {
+    const formData = {
+        eg_value_1: $('#slider_1').slider('value'),
+        eg_value_2: $('#slider_2').slider('value'),
+        external_voltage: $('#external_voltage_slider').slider('value')
+    };
+
+    $.ajax({
+        url: '{% url "junction_bias" %}',
+        type: 'POST',
+        data: formData,
+        headers: {
+            'X-CSRFToken': $('input[name=csrfmiddlewaretoken]').val(),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        success: function(response) {
+            $('#efficiency').text(response.efficiency);
+            $('#voc').text(response.voc);
+            $('#jsc').text(response.jsc);
+            $('#ff').text(response.ff);
+
+            response.jsc_per_junction.forEach((jsc, index) => {
+                $(`#jsc_junction_${index + 1}`).text(jsc.toFixed(1));
+            });
+
+            updateChart(response);
+        },
+        error: function(xhr, status, error) {
+            console.error("AJAX request failed. Status:", status, "Error:", error);
+            console.log("Response:", xhr.responseText);
+        }
+    });
+}
+
+        $(document).ready(function() {
+            initializeChart();
+            updateBandgapSliders();
+            initializeExternalVoltageSlider();
+            calculateEfficiency();
+        });
+    </script>
+
+     <footer>
+
+        Author: <a href="https://www.qpvgroup.org/phoebe-pearce" target="_blank">Phoebe Pearce</a>,
+        <a href="mailto:p.pearce@unsw.edu.au">p.pearce@unsw.edu.au</a>
+    </footer>
+
+</body>
+</html>
