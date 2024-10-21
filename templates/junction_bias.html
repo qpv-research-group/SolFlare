@@ -151,7 +151,7 @@
 
     <script>
         let chart;
-        const colors = ['#B10DC9', '#0074D9', '#FF4136'];
+        const colors = ['#0074D9', '#FF4136', '#000000'];
 
 function initializeChart() {
     const ctx = document.getElementById('iv-chart').getContext('2d');
@@ -198,21 +198,21 @@ function initializeChart() {
                 },
                 {
                     label: 'Top junction V',
-                    borderColor: 'red',
-                    backgroundColor: 'red',
+                    borderColor: colors[0],
+                    backgroundColor: colors[0],
                     data: [],
                     showLine: false,
-                    pointRadius: 6,
+                    pointRadius: 8,
                     pointStyle: 'triangle',
                     legendType: 'point'
                 },
                 {
                     label: 'Bottom junction V',
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
+                    borderColor: colors[1],
+                    backgroundColor: colors[1],
                     data: [],
                     showLine: false,
-                    pointRadius: 6,
+                    pointRadius: 8,
                     pointStyle: 'rect',
                     legendType: 'point'
                 }
