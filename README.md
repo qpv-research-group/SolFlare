@@ -34,3 +34,21 @@ To run the application on Linode you want to run in the background so include th
 
 Open your browser to http://localhost:8000/siliconabsorption to see the application locally. Replace with Linode IP address to access online.
 
+# Azure Container Deploy
+
+Deployment to Azure is currently manual, documenting the steps here, eventually we can automate this.
+
+Ensure code is update to date and we are on the pero_si branch,
+
+    git checkout pero_si
+    git pull
+
+We need to run on x86 processors but I am building on an M2 Mac,
+
+    docker buildx build --platform linux/amd64 --tag solflareauseast.azurecr.io/samples/test1 --no-cache .
+
+Finally, push to the container repo.
+
+    docker push solflareauseast.azurecr.io/samples/test1
+    
+    
