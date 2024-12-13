@@ -35,10 +35,10 @@ def calculate_lcoe(request):
 
         r = form.cleaned_data['discount_rate'] / 100
 
-        capacityCost = np.linspace(capacity_cost_min, capacity_cost_max, 20)
-        capacityFactor = np.linspace(capacity_factor_min / 100, capacity_factor_max / 100, 20)
-        xx, yy = np.meshgrid(capacityCost, capacityFactor, sparse=True)
+        capacityCost = np.linspace(capacity_cost_min, capacity_cost_max, 30)
+        capacityFactor = np.linspace(capacity_factor_min / 100, capacity_factor_max / 100, 30)
 
+        xx, yy = np.meshgrid(capacityCost, capacityFactor, sparse=True)
 
         def getLCOE(capitalInvestment, oandmCost, inflation, capacityFactor, pVCapacity,
                     performanceRatio, degradation, r, years):
