@@ -1,0 +1,203 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Efficiency Limit Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .logo-container img { height: 50px; }
+        #chart-container { position: relative; height: 400px; width: 100%; margin-top: 20px; }
+        .bandgap-line { position: absolute; top: 0; bottom: 0; width: 4px; cursor: ew-resize; }
+        .slider { width: 300px; margin: 10px 0; }
+        #bandgap-values { margin-top: 10px; }
+        .bandgap-value { display: inline-block; margin-right: 10px; padding: 5px; border-radius: 5px; }
+        #results {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #results h2 { margin-top: 0; }
+         .logo-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            height: 50px;
+        }
+
+        footer {
+            margin-top: 40px;
+            flex-shrink: 0;
+            background-color: #f5f5f5;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 14px;
+            border-top: 1px solid #e0e0e0;
+            width: 100%;
+        }
+
+        footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="logo-container">
+    <img src="{% static 'unswlogo.png' %}" alt="UNSW Logo">
+    <a href="http://www.solcore.solar"><img src="{% static 'solcore.png' %}" alt="Solcore Logo"></a>
+</div>
+
+    <h1>LCOE calculator</h1>
+
+    <p>Calculate the levelised cost of electricity (LCOE) of a solar system, based on the lifetime, discount rate,
+    operation & maintenance costs, PV degradation rate, capacity factor, and capacity cost.
+    Assumptions are that all capital costs, including balance of system costs, are included in the capacity cost,
+    and we ignore inflation.</p>
+
+   <div class="row">
+    <div class="col-md-6">
+    <form method="POST" action="{% url 'calculate_lcoe' %}">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 form-container">
+                    <table>
+                        {{ form.as_table }}
+                    </table>
+                </div>
+            </div>
+
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <button type="submit" name="calculate" class="btn btn-primary">Calculate</button>
+            </div>
+        </div>
+
+        </form>
+<div id="contourPlot"></div>
+
+    </div>
+</div>
+
+
+<canvas id="contourPlot"></canvas>
+
+<script>
+function createContourPlot(results) {
+    try {
+        // Validate input data
+        if (!results || !results.capacityCost || !results.capacityFactor || !results.z) {
+            console.error("Invalid or missing plot data");
+            return;
+        }
+
+        const x = results.capacityCost;
+        const y = results.capacityFactor;
+        const z = results.z;
+
+        console.log("x values:", x);
+        console.log("y values:", y);
+        console.log("z values:", z);
+        // Flatten z and check for valid numeric values
+        const flatZ = z.flat();
+        const validZ = flatZ.filter(val => typeof val === 'number' && !isNaN(val));
+
+           const minZ = Math.min(...validZ);
+        const maxZ = Math.max(...validZ);
+        const numContours = 15;
+        const contourStep = (maxZ - minZ) / numContours;
+        const contourLevels = Array.from(
+            {length: numContours},
+            (_, i) => minZ + i * contourStep
+        );
+
+        Plotly.newPlot('contourPlot', [{
+            x: x,
+            y: y,
+            z: z,
+            type: 'contour',
+              line:{
+    width: 2
+  },
+            colorscale: 'Viridis',
+            contours: {
+                coloring: 'lines',
+                start: minZ,
+                end: maxZ,
+                size: contourStep,
+
+                showlabels: true,  // This enables contour line labels
+                labelfont: {
+                    size: 12,
+                    color: 'black'
+                },
+                labelformat: '.2f'  // Format of the label (2 decimal places)
+            },
+            colorbar: {
+                title: 'LCOE ($/MWh)'
+            }
+        }], {
+            title: 'LCOE Contour Plot',
+            xaxis: {
+                title: 'Capacity Cost ($/kWh)',
+                tickformat: '.2f'
+            },
+            yaxis: {
+                title: 'Capacity Factor (%)',
+                tickformat: '.1f'
+            },
+            width: 800,
+            height: 600,
+                fillcolor: 'rgba(0,0,0,0)',  // Fully transparent fill
+            opacity: 0  // No opacity for fill
+        });
+    } catch (error) {
+        console.error("Error creating contour plot:", error);
+    }
+}
+
+const resultsData = {{ results_json|safe }};
+
+console.log("Raw results:", resultsData);
+console.log("X values:", resultsData.capacityCost);
+console.log("Y values:", resultsData.capacityFactor);
+console.log("Z values:", resultsData.z);
+console.log("Z dimensions:", resultsData.z.length, resultsData.z[0] ? resultsData.z[0].length : 'undefined');
+
+if (resultsData) {
+    createContourPlot(resultsData);
+} else {
+    console.error("No results data available");
+}
+
+</script>
+
+
+     <footer>
+
+        Author: <a href="https://www.qpvgroup.org/phoebe-pearce" target="_blank">Phoebe Pearce</a>,
+        <a href="mailto:p.pearce@unsw.edu.au">p.pearce@unsw.edu.au</a>
+    </footer>
+
+</body>
+</html>
+
